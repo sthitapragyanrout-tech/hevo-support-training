@@ -1,0 +1,603 @@
+[
+  {
+    "model": "catalog.course",
+    "pk": 1,
+    "fields": {
+      "slug": "cx-onboarding-2026",
+      "created_by": null,
+      "created_at": "2026-01-01T00:00:00Z",
+      "archived_at": null
+    }
+  },
+  {
+    "model": "catalog.courseversion",
+    "pk": 1,
+    "fields": {
+      "root_node": 1,
+      "version": 1,
+      "state": "published",
+      "published_at": "2026-01-01T00:00:00Z",
+      "published_by": null,
+      "course": 1,
+      "submitted_at": null,
+      "submitted_by": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 1,
+    "fields": {
+      "parent": null,
+      "course_version": 1,
+      "kind": "course",
+      "title": "CX Onboarding 2026",
+      "slug": "cx-onboarding-2026",
+      "order": 0,
+      "description": "New CX engineers don’t need to become data engineers. You do need to think like one when a customer says their data has stopped moving.\n\nThis course takes you from how a pipeline works to how you investigate a failure and explain what you found — in the order you’ll meet them on real tickets.\n\n## What you’ll learn\n\n- Explain how data moves from a source to a destination, and where it can go wrong\n- Diagnose the most common ingestion and load failures from the evidence in the logs\n- Triage a ticket quickly and decide when to escalate\n- Communicate technical findings clearly to a customer under pressure",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 2,
+    "fields": {
+      "parent": 1,
+      "course_version": 1,
+      "kind": "segment",
+      "title": "Product Fundamentals",
+      "slug": "product-fundamentals",
+      "order": 0,
+      "description": "How data moves from a source to a destination, and the choices — how it’s read, reshaped and loaded — that explain most customer questions.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 3,
+    "fields": {
+      "parent": 2,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Pipeline Concepts",
+      "slug": "pipeline-concepts",
+      "order": 0,
+      "description": "Every pipeline ticket starts with two questions: where does the data come from and go to, and how does it get read? This lesson answers both.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 4,
+    "fields": {
+      "parent": 3,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Sources & Destinations",
+      "slug": "sources-and-destinations",
+      "order": 0,
+      "description": "Every pipeline ticket you’ll handle comes down to one question: **is the problem at the start, in the middle, or at the end?**\n\n```flow\nSource -> Extract -> Transform -> Load -> Destination\n```\n\n### The big picture\n\nA **source** is where data is created — a production database, a SaaS tool, an event stream. A **destination** is where people use it, usually a warehouse their analysts query. A pipeline is the configured, repeatable job that keeps the two in step.\n\n### Two ends, two sets of rules\n\nEach end has its own credentials, permissions, limits and ways of changing. Most “the pipeline stopped” tickets trace back to a change at one end that nobody told the pipeline about: a rotated password, a renamed table, a full disk, a revoked permission.\n\n> [!WHY]\n> Before you can fix anything you have to *place* the problem. “Data is missing” could mean it never left the source, was lost in flight, or arrived and is being read differently. Each has a different owner and a different fix.\n\n### In a real ticket\n\n> [!SCENARIO] “Our orders table is stale”\n> > “The orders table hasn’t updated since 10:30 AM, but we can see new records in the source database.”\n>\n> **Recognise:** the source has the data and the destination doesn’t, so the gap is somewhere between them — not at the start.\n>\n> **Investigate:** when exactly did it stop, and did anything change around then? Check the last successful run and the first error after it, then permissions at both ends.\n>\n> **Don’t assume** it’s a bug on our side. A changed credential or a full destination looks identical from the outside.\n>\n> **Communicate:** tell the customer what you’ve narrowed it down to, even before you know the cause.\n\n> [!TAKEAWAY]\n> - Place the problem first: source, in flight, or destination.\n> - Most stoppages follow a change at one end.\n> - Tell the customer where you’ve narrowed it to, not just that you’re looking.",
+      "is_required": true,
+      "estimated_minutes": 15
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 5,
+    "fields": {
+      "parent": 3,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Ingestion Modes",
+      "slug": "ingestion-modes",
+      "order": 1,
+      "description": "A pipeline can read the same table in three very different ways. The way it uses decides how fresh the data is, how hard it leans on the source — and which failures you’ll see.\n\n### Three ways to read a table\n\n**Full load** copies the entire table every run. Simple and always correct, but slow and heavy on large tables.\n\n**Incremental load** copies only the rows that changed since the last run, using a bookmark such as `updated_at`.\n\n```sql\nSELECT * FROM orders\nWHERE updated_at > :last_bookmark;\n```\n\n**Change data capture (CDC)** reads the database’s own change log, so it sees inserts, updates *and deletes* in order, with little load on the source.\n\n> [!IDEA]\n> A mode is a promise about *what the pipeline can notice*. Full load notices everything but is expensive. Incremental notices only rows whose bookmark moved. CDC notices every change the log recorded.\n\n### In a real ticket\n\n> [!SCENARIO] “Deleted rows are still in our warehouse”\n> > “We deleted about 200 test customers last week. They’re gone from our app, but they still show up in every report.”\n>\n> **Recognise:** deletions that never arrive are the classic signature of an incremental load — a deleted row has no `updated_at` to find.\n>\n> **Investigate:** confirm which mode the pipeline uses for that table, and whether the source offers a way to flag deletions (a soft-delete column) or a change log.\n>\n> **Don’t assume** the pipeline is broken. It may be doing exactly what that mode can do.\n>\n> **Communicate:** explain the limitation in plain terms, then offer options: a periodic full refresh, soft deletes, or a mode that can see deletions.\n\n> [!PITFALL]\n> Treating “the data is wrong” as one problem. Stale rows, missing rows and undeleted rows each point to a different cause — name which one the customer actually has before you investigate.\n\n> [!TAKEAWAY]\n> - Full load is simple and safe; incremental is efficient but blind to deletes; CDC sees everything but needs log access.\n> - “Deleted rows still appear” usually means incremental.\n> - Match your explanation to the mode the customer is really using.",
+      "is_required": true,
+      "estimated_minutes": 18
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 6,
+    "fields": {
+      "parent": 2,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Transformations",
+      "slug": "transformations",
+      "order": 1,
+      "description": "Between the source and the destination, records often change shape. When a customer says the data looks different, this is where you look first.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 7,
+    "fields": {
+      "parent": 6,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Basic Transformations",
+      "slug": "basic-transformations",
+      "order": 0,
+      "description": "A transformation changes a record on its way through. When a customer says “the data looks different from the source,” this is usually where the difference was introduced.\n\n```flow\nRaw record -> Rename -> Cast -> Filter* -> Clean record\n```\n\n### What transformations do\n\n- **Rename or drop** fields so the destination is tidy.\n- **Cast** values to the right type, such as text to timestamp.\n- **Filter** out records that shouldn’t arrive, like internal test data.\n- **Derive** new fields from existing ones.\n\n### A tiny example\n\n```python\ndef transform(record):\n    record[\"email\"] = record[\"email\"].strip().lower()\n    record.pop(\"internal_notes\", None)\n    return record\n```\n\nIf `email` is ever missing, this fails on that record — and everything after it.\n\n> [!SUPPORT]\n> Ask for **one record before and after** the transformation. “The data looks wrong” becomes a specific, checkable difference — and usually shows which step to look at.\n\n### When it breaks\n\nTransformations fail on the unexpected: a null where a value was assumed, a new type, a record that no longer matches a filter. Look for the **first** failing record, not just the error count, and tell the customer which record it was.\n\n> [!TAKEAWAY]\n> - Transformations are where “different from the source” comes from.\n> - One before-and-after record beats a vague description.\n> - Find the first failing record.",
+      "is_required": true,
+      "estimated_minutes": 14
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 8,
+    "fields": {
+      "parent": 6,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Advanced Transformations",
+      "slug": "advanced-transformations",
+      "order": 1,
+      "description": "The scariest tickets are the ones where nothing changed — and everything broke.\n\n> [!SCENARIO] “It worked yesterday”\n> > “Our custom transformation has run for months. Since this morning every run fails, and we haven’t touched the code.”\n>\n> **Recognise:** code that hasn’t changed but suddenly fails almost always met *different input*.\n>\n> **Investigate:** find the first failing record and compare it with the last good one — a field that changed type, a value that is now null, a new field.\n>\n> **Don’t assume** the customer edited something. Ask what changed in the *source* first.\n\n### Reading someone else’s transformation\n\nYou won’t write these yourself, but you need to read them quickly:\n\n1. Find the **input** shape and the **output** shape first.\n2. Follow one record through, line by line.\n3. Note each assumption — required fields, types, ordering.\n4. Check which assumption the failing record breaks.\n\n### Patterns you’ll meet\n\n- **Conditional logic:** different handling per record type or region.\n- **Lookups:** adding fields from a reference table.\n- **Aggregation:** summarising many records into one before loading.\n\n> [!SUPPORT]\n> Share what you find in the customer’s terms: “The `amount` field started arriving as text, which your script expects as a number.” That is far more useful than “your code has a bug.”\n\n### Go deeper\n\nThe course below goes further into SQL-based transformations. Finish it before you take tickets that involve custom transformation code.",
+      "is_required": true,
+      "estimated_minutes": 30
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 9,
+    "fields": {
+      "parent": 1,
+      "course_version": 1,
+      "kind": "segment",
+      "title": "Troubleshooting Basics",
+      "slug": "troubleshooting-basics",
+      "order": 1,
+      "description": "A repeatable way to recognise a failing pipeline, read the evidence and decide what to do first.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 10,
+    "fields": {
+      "parent": 9,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Common Failures",
+      "slug": "common-failures",
+      "order": 0,
+      "description": "When a pipeline stops, the failure is on one side of a line: it couldn’t read, or it couldn’t write. Learn to tell which in minutes.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 11,
+    "fields": {
+      "parent": 10,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Ingestion Failures",
+      "slug": "ingestion-failures",
+      "order": 0,
+      "description": "An ingestion failure means the pipeline couldn’t *read* from the source. The pipeline itself is fine; it just can’t get what it needs.\n\n### Work from the outside in\n\n```flow\nCredentials -> Network access* -> Source limits -> Source changes\n```\n\nCheck the cheap, common causes first: has access been revoked or expired, can the pipeline still reach the source, is the source throttling it, and did the source’s structure change?\n\n### In a real ticket\n\n> [!SCENARIO] “Everything failed at 2 AM”\n> > “All four of our pipelines stopped overnight. Nothing was changed on our side.”\n>\n> **Recognise:** several unrelated pipelines failing at the same moment points to something *shared* — a credential, a network rule or a platform issue — not four separate problems.\n>\n> **Investigate:** read the **first** error in each log, not the last; later errors are usually consequences. Compare the timestamps.\n>\n> **Don’t assume** it’s the customer’s fault, or ours. Let the evidence say.\n>\n> **Communicate:** tell the customer you’ve found a common pattern across pipelines and what you’re checking next.\n\n> [!SUPPORT]\n> Write down what failed, since when, the exact error text and what you ruled out. The next person shouldn’t have to start from zero.\n\n> [!TAKEAWAY]\n> - Read the first error, not the last.\n> - Simultaneous failures suggest a shared cause.\n> - Record what you ruled out.",
+      "is_required": true,
+      "estimated_minutes": 12
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 12,
+    "fields": {
+      "parent": 10,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Load Failures",
+      "slug": "load-failures",
+      "order": 1,
+      "description": "A load failure means the pipeline *read* the data fine, but the destination refused to take it. The source side is healthy; look at the other end.\n\n> [!PITFALL]\n> Telling a customer their data is lost. In a load failure the data is usually safely queued upstream, and once the destination issue is fixed the backlog normally flows through. Say “delayed,” not “lost,” unless you’ve confirmed otherwise.\n\n### What destinations reject\n\n- **Type mismatch:** a value that doesn’t fit its column.\n- **Permissions:** the pipeline’s user can’t create or write to a table.\n- **Capacity:** the destination is out of space or at a limit.\n- **Schema drift:** a new source field with nowhere to go.\n\n### Check in this order\n\n1. The exact destination error message.\n2. Whether permissions changed recently.\n3. Whether a recent schema change introduced a new column or type.\n4. Whether the destination is at a quota or under maintenance.\n\n### Try it\n\nThe quiz that follows gives you four failure messages. Match each to its most likely cause.",
+      "is_required": true,
+      "estimated_minutes": 10
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 13,
+    "fields": {
+      "parent": 9,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Debugging Tools",
+      "slug": "debugging-tools",
+      "order": 1,
+      "description": "Once you know there’s a failure, you need evidence and a decision: what do the logs say, and how urgent is this ticket?",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 14,
+    "fields": {
+      "parent": 13,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Log Analysis",
+      "slug": "log-analysis",
+      "order": 0,
+      "description": "Logs are the pipeline’s own account of what happened. Reading them well is the fastest way to shorten any investigation.\n\n```flow\nFind the window -> First error* -> Line above it -> Look for a pattern\n```\n\n### Read in this order\n\nStart a little *before* the customer says it broke, then find the **first** error — everything after it may just be fallout. The line above it usually says what the pipeline was doing when it failed.\n\n```\n10:02:11 INFO  Reading table orders (batch 14)\n10:02:12 WARN  Retrying request (attempt 2/3)\n10:02:15 ERROR Authentication failed: token expired\n10:02:15 ERROR Batch 14 aborted\n```\n\nThe root cause is the expired token on the third line, not the aborted batch below it.\n\n### One incident, or a pattern?\n\nThe same error once is an incident. The same error every run is configuration. The same error across several customers is something bigger.\n\n> [!SUPPORT]\n> Copy the **exact** error text into the ticket. Paraphrases make it hard for engineering to find related incidents.\n\n> [!TAKEAWAY]\n> - Start before the break, then find the first error.\n> - Read the line above it.\n> - Notice whether it’s a one-off or recurring.",
+      "is_required": true,
+      "estimated_minutes": 16
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 15,
+    "fields": {
+      "parent": 13,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Ticket Triage",
+      "slug": "ticket-triage",
+      "order": 1,
+      "description": "Triage decides what happens in a ticket’s first minutes: how urgent it is, who owns it, and what the customer hears first.\n\n> [!IDEA]\n> Ask three questions before anything else: **How bad is the impact? How wide is the scope? Do we have the evidence?**\n\n### Setting priority\n\n- **Urgent:** production data is missing or stopped for a customer relying on it now.\n- **High:** significant delay, or a repeated failure with no workaround.\n- **Normal:** a question, a one-off failure that already recovered, or a configuration request.\n\n### Two tickets, one hour\n\n> [!SCENARIO] Which one first?\n> > Ticket A: “Our dashboards are blank this morning and the board meeting is at 11.”\n> >\n> > Ticket B: “One pipeline errored last night, but it re-ran and looks fine now.”\n>\n> **A** is urgent: the impact is visible, there’s a deadline, and you don’t yet know the scope. Acknowledge it, ask for the pipeline name and when it last worked, and start investigating.\n>\n> **B** is normal: it recovered. Confirm the data is complete, note the cause if you can find it, and reply once it’s checked.\n>\n> The customer’s *tone* isn’t the priority — the impact is.\n\n> [!PITFALL]\n> Guessing a cause in your first reply. If you guess wrong, the customer remembers it. Acknowledge the impact, say what you’re checking, and give a time for the next update.\n\n### The exercise\n\nThe workshop gives you a set of realistic tickets. Triage each one, justify the priority, and draft the first reply.\n\n> [!TAKEAWAY]\n> - Impact, scope, evidence — in that order.\n> - Priority comes from impact, not tone.\n> - First reply: acknowledge, say what you’re checking, ask for what’s missing, promise the next update.",
+      "is_required": true,
+      "estimated_minutes": 25
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 16,
+    "fields": {
+      "parent": 1,
+      "course_version": 1,
+      "kind": "segment",
+      "title": "Customer Communication",
+      "slug": "customer-communication",
+      "order": 2,
+      "description": "How to write, chat and escalate so customers always know what’s happening and what happens next.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 17,
+    "fields": {
+      "parent": 16,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Written Communication",
+      "slug": "written-communication",
+      "order": 0,
+      "description": "Customers judge your support by what they read. These two sections cover the first reply and the full written response.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 18,
+    "fields": {
+      "parent": 17,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Email Etiquette",
+      "slug": "email-etiquette",
+      "order": 0,
+      "description": "A customer reads your email on a stressful day, often more than once. Make the second read as clear as the first.\n\n### Same problem, two replies\n\n> [!SCENARIO] “Why is my data late?”\n> **Weaker:** “Hi, we are looking into the issue. Will update when we know more.”\n>\n> **Stronger:** “Hi Priya, I can see your orders pipeline stopped at 10:30 AM. I’m checking the connection credentials first, because that’s the most common cause of a stop like this. I’ll update you by 2 PM with what I find.”\n>\n> The stronger reply says what you *saw*, what you’re *doing*, and *when* they’ll hear next. Nothing in it is a guess.\n\n### A structure that works\n\n1. Acknowledge the impact in the customer’s words.\n2. Say what you found or are checking — plain language, no internal jargon.\n3. Ask for anything you need, as a short numbered list.\n4. Give a specific time for the next update, not “soon.”\n\n> [!PITFALL]\n> Sounding defensive. Even when the cause is on the customer’s side, state the facts and the fix — never who’s to blame. Read your reply as them; if any sentence could sound like blame, rewrite it.\n\n> [!TAKEAWAY]\n> - Say what you saw, what you’re doing, and when they’ll hear next.\n> - Own the next step: “I will,” not “we’ll try.”\n> - Plain words, short paragraphs.",
+      "is_required": true,
+      "estimated_minutes": 10
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 19,
+    "fields": {
+      "parent": 17,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Ticket Responses",
+      "slug": "ticket-responses",
+      "order": 1,
+      "description": "This is where the earlier lessons come together: you diagnose a realistic ticket, write the reply, and a mentor rates it.\n\n### What a strong response contains\n\n- A correct reading of the problem, in the customer’s terms.\n- The evidence you used — a log time, an error message.\n- A clear action: what you did, or what the customer should do.\n- An honest time for the next update.\n\n### How a mentor will rate it\n\n- **Accuracy:** is the diagnosis right, and supported?\n- **Clarity:** could the customer act without a follow-up?\n- **Tone:** calm, direct, respectful?\n- **Ownership:** is the next step, and its timing, explicit?\n\n> [!SUPPORT]\n> Write the response, then delete the first sentence that doesn’t help the customer. It’s usually the second one.\n\n### Before you submit\n\nCheck names, times and numbers against the ticket. A small factual slip costs more trust than an awkward sentence.",
+      "is_required": true,
+      "estimated_minutes": 20
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 20,
+    "fields": {
+      "parent": 16,
+      "course_version": 1,
+      "kind": "topic",
+      "title": "Live Interaction",
+      "slug": "live-interaction",
+      "order": 1,
+      "description": "Chat and escalation are the two moments where speed and clarity matter most.",
+      "is_required": true,
+      "estimated_minutes": null
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 21,
+    "fields": {
+      "parent": 20,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Chat Simulation",
+      "slug": "chat-simulation",
+      "order": 0,
+      "description": "Chat leaves no time to polish. This simulation lets you practise staying calm, accurate and brief while a customer waits.\n\n> [!SCENARIO] How the simulation opens\n> > “hey my pipeline is broken?? this is urgent”\n>\n> There’s very little to go on, and the customer is anxious. Your first message should do three things: acknowledge the urgency, ask for the *one* thing you need first (which pipeline, and when it last worked), and say what you’ll do next.\n\n### What to practise\n\n- **Short turns:** one idea per message.\n- **Visible progress:** say what you’re checking while you check it.\n- **Confirming understanding:** restate the problem before you act.\n- **Clean closes:** summarise what was done and what happens next.\n\n> [!SUPPORT]\n> If you need time, say so: “I’m checking the logs now and will update you in two minutes” is far better than silence.\n\n### Before you start\n\nKeep triage and email etiquette fresh. The same structure applies — just faster.",
+      "is_required": true,
+      "estimated_minutes": 20
+    }
+  },
+  {
+    "model": "catalog.contentnode",
+    "pk": 22,
+    "fields": {
+      "parent": 20,
+      "course_version": 1,
+      "kind": "subtopic",
+      "title": "Escalation Handling",
+      "slug": "escalation-handling",
+      "order": 1,
+      "description": "Escalating is part of the job, not a failure. A good escalation lets engineering start working the minute they read it.\n\n```flow\nInvestigate -> Document -> Escalate* -> Keep the customer informed -> Follow up\n```\n\n### When to escalate\n\nYou’ve followed the playbook and the problem persists, several customers show the same symptom, the cause is outside what you can inspect, or the impact is high and time-sensitive.\n\n### What a good escalation reads like\n\n> [!SCENARIO] A note engineering can act on\n> **Summary:** Orders pipeline for one customer stopped at 10:30 PM last night; destination shows no new rows since.\n>\n> **Evidence:** First error at 22:31 — “authentication failed: token expired.” Customer re-entered credentials at 08:40; same error.\n>\n> **Ruled out:** source reachable; destination permissions unchanged; no schema changes.\n>\n> **Customer context:** dashboards are blank ahead of an 11:00 meeting; told the next update is at 09:30.\n>\n> Someone who has never seen the ticket can start from this.\n\n> [!PITFALL]\n> Escalating without evidence. “Pipeline is broken, please look” forces engineering to ask the questions you could have answered. If they must ask you something first, the escalation was incomplete.\n\n> [!TAKEAWAY]\n> - Escalate with a summary, evidence, what you ruled out and the customer context.\n> - Stay the customer’s point of contact after you escalate.\n> - Tell them what to expect and when you’ll update them.",
+      "is_required": true,
+      "estimated_minutes": 12
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 1,
+    "fields": {
+      "content_node": 4,
+      "activity_type": "reading",
+      "title": "Sources & Destinations overview",
+      "config": {
+        "source_url": "https://docs.hevo.example/sources",
+        "estimated_read_minutes": 15
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 2,
+    "fields": {
+      "content_node": 4,
+      "activity_type": "mcq",
+      "title": "Sources & Destinations quiz",
+      "config": {
+        "questions": [
+          {
+            "text": "What is a source?",
+            "answer": 0,
+            "choices": [
+              "A",
+              "B"
+            ]
+          }
+        ],
+        "pass_threshold": 0.8
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 1
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 3,
+    "fields": {
+      "content_node": 5,
+      "activity_type": "video",
+      "title": "Ingestion Modes walkthrough",
+      "config": {
+        "video_asset_ref": "placeholder-ingestion-modes",
+        "max_credited_rate": 1.0,
+        "completion_threshold": 0.9
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 4,
+    "fields": {
+      "content_node": 7,
+      "activity_type": "reading",
+      "title": "Basic Transformations guide",
+      "config": {
+        "source_url": "https://docs.hevo.example/transformations",
+        "estimated_read_minutes": 20
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 5,
+    "fields": {
+      "content_node": 8,
+      "activity_type": "external_course",
+      "title": "Scaler: Advanced SQL Transformations",
+      "config": {
+        "course_url": "https://scaler.example/advanced-sql",
+        "provider_name": "Scaler",
+        "requires_verification": true
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 6,
+    "fields": {
+      "content_node": 11,
+      "activity_type": "reading",
+      "title": "Ingestion failure playbook",
+      "config": {
+        "source_url": "https://docs.hevo.example/ingestion-failures",
+        "estimated_read_minutes": 25
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 7,
+    "fields": {
+      "content_node": 12,
+      "activity_type": "mcq",
+      "title": "Load failures quiz",
+      "config": {
+        "questions": [
+          {
+            "text": "What causes a load failure?",
+            "answer": 2,
+            "choices": [
+              "A",
+              "B",
+              "C"
+            ]
+          }
+        ],
+        "pass_threshold": 0.8
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 8,
+    "fields": {
+      "content_node": 14,
+      "activity_type": "video",
+      "title": "Log analysis demo",
+      "config": {
+        "video_asset_ref": "placeholder-log-analysis",
+        "max_credited_rate": 1.0,
+        "completion_threshold": 0.9
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 9,
+    "fields": {
+      "content_node": 15,
+      "activity_type": "workshop",
+      "title": "Ticket triage exercise",
+      "config": {},
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 10,
+    "fields": {
+      "content_node": 18,
+      "activity_type": "reading",
+      "title": "Email etiquette guide",
+      "config": {
+        "source_url": "https://docs.hevo.example/email-etiquette",
+        "estimated_read_minutes": 10
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 11,
+    "fields": {
+      "content_node": 19,
+      "activity_type": "manual_sim",
+      "title": "Ticket response rating",
+      "config": {},
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 12,
+    "fields": {
+      "content_node": 21,
+      "activity_type": "bot_sim",
+      "title": "Bot chat simulation",
+      "config": {},
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  },
+  {
+    "model": "catalog.activity",
+    "pk": 13,
+    "fields": {
+      "content_node": 22,
+      "activity_type": "reading",
+      "title": "Escalation handling guide",
+      "config": {
+        "source_url": "https://docs.hevo.example/escalation",
+        "estimated_read_minutes": 12
+      },
+      "is_required": true,
+      "max_attempts": 3,
+      "mastery_threshold": null,
+      "points": 0,
+      "order": 0
+    }
+  }
+]

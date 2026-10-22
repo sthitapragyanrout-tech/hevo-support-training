@@ -1,0 +1,57 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.step + .step::before {
+  content: '';
+  width: 20px;
+  height: 1px;
+  margin-right: 2px;
+  background: var(--border-strong);
+}
+
+.dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: #fff;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.current {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.current .dot {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 8px var(--accent);
+}
+
+.done {
+  color: var(--text-body);
+}
+
+.done .dot {
+  background: var(--success);
+  border-color: var(--success);
+}

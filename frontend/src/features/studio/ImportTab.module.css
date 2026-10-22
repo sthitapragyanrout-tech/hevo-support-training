@@ -1,0 +1,141 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-6) var(--sp-16);
+}
+
+.page h2 {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-18);
+}
+
+.help {
+  max-width: 62ch;
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-14);
+  color: var(--text-body);
+}
+
+.filename {
+  margin-left: var(--sp-3);
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+}
+
+.locked {
+  max-width: 60ch;
+  margin: var(--sp-8) auto;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--accent-tint);
+  border-left: 3px solid var(--accent);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
+
+.success {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--accent-tint);
+  border-left: 3px solid var(--success);
+}
+
+.mapping {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-3) var(--sp-4);
+}
+
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.map select {
+  padding: 6px 8px;
+  font-size: var(--fs-14);
+  font-weight: 400;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.problems {
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-3);
+  background: var(--warning-tint);
+  border-left: 3px solid var(--warning);
+}
+
+.problems ul,
+.warnings {
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.2em;
+  font-size: var(--fs-14);
+}
+
+.warnings {
+  margin-bottom: var(--sp-3);
+  color: var(--text-muted);
+}
+
+.row {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.counts {
+  margin-bottom: var(--sp-3);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.outline {
+  list-style: none;
+  margin: 0;
+  padding-left: var(--sp-4);
+  font-size: var(--fs-14);
+}
+
+.outline .outline {
+  border-left: 1px solid var(--border);
+}
+
+.outline li {
+  padding: 2px 0;
+}
+
+.node {
+  color: var(--text);
+}
+
+.module {
+  font-weight: 600;
+}
+
+.lesson {
+  font-weight: 500;
+}
+
+.section {
+  font-weight: 400;
+  color: var(--text-body);
+}
+
+.acts {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.actions {
+  margin-top: var(--sp-4);
+}

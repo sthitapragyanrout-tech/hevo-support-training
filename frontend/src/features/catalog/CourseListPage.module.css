@@ -1,0 +1,147 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sp-12) var(--sp-8) var(--sp-16);
+}
+
+.header {
+  margin-bottom: var(--sp-6);
+}
+
+.heading {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-28);
+  letter-spacing: -0.02em;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-6);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 120ms ease-out;
+}
+
+.row:hover {
+  background: var(--surface);
+}
+
+/* A small marker, not an illustration. */
+.marker {
+  flex: none;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  background: var(--accent-tint);
+  border-radius: var(--radius-lg);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.row h2 {
+  font-size: var(--fs-18);
+  overflow-wrap: anywhere;
+  transition: color 120ms ease-out;
+}
+
+.row:hover h2 {
+  color: var(--accent);
+}
+
+.description {
+  max-width: 62ch;
+  margin-top: var(--sp-1);
+  color: var(--text-body);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.meta span + span::before {
+  content: '·';
+  margin-right: var(--sp-3);
+}
+
+.state {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.complete {
+  color: var(--success);
+}
+
+.action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.action svg {
+  transition: transform 120ms ease-out;
+}
+
+.row:hover .action svg {
+  transform: translateX(3px);
+}
+
+@media (max-width: 599px) {
+  /* No orphaned separator dots when the meta line wraps. */
+  .meta {
+    gap: 0 var(--sp-4);
+  }
+
+  .meta span + span::before {
+    content: none;
+  }
+
+  .page {
+    padding: var(--sp-6) var(--sp-4) var(--sp-12);
+  }
+
+  .row {
+    flex-wrap: wrap;
+    padding: var(--sp-4);
+  }
+
+  .text {
+    flex-basis: calc(100% - 56px);
+  }
+
+  .action {
+    margin-left: 56px;
+  }
+}

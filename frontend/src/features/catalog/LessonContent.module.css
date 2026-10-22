@@ -1,0 +1,142 @@
+/* Typography does the work here: no cards, no boxes — just rhythm. */
+.prose {
+  font-size: 1.0625rem; /* 17px reading size */
+  line-height: 1.75;
+  color: var(--text-body);
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose p {
+  margin: 0 0 1.25em;
+}
+
+/* The hook: the opening paragraph is the lesson's first sentence to the learner. */
+.lead > p:first-child {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* Section marker: a short teal rule, not a full-width hairline. */
+.prose h2 {
+  position: relative;
+  margin: 2.5em 0 0.6em;
+  padding-top: 1em;
+  font-size: var(--fs-22);
+  line-height: 1.3;
+  scroll-margin-top: calc(var(--header-h) + var(--sp-6));
+}
+
+.prose h2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.prose > h2:first-child {
+  margin-top: 0;
+}
+
+.prose h3 {
+  margin: 1.75em 0 0.5em;
+  font-size: var(--fs-18);
+}
+
+.prose ul,
+.prose ol {
+  margin: 0 0 1.25em;
+  padding-left: 1.4em;
+}
+
+.prose li {
+  margin: 0.4em 0;
+  padding-left: 0.2em;
+}
+
+.prose li::marker {
+  color: var(--text-muted);
+}
+
+.prose strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.prose a {
+  text-underline-offset: 2px;
+}
+
+.prose code {
+  padding: 0.12em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.prose pre {
+  margin: 0 0 1.5em;
+  padding: var(--sp-4);
+  overflow-x: auto;
+  font-size: var(--fs-14);
+  line-height: 1.6;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.prose pre code {
+  padding: 0;
+  font-size: inherit;
+  background: none;
+  border: 0;
+}
+
+/* A plain blockquote is just a quiet quote; learning callouts use
+ * `> [!KIND]` and are rendered by <Callout>. */
+.prose blockquote {
+  margin: 0 0 1.5em;
+  padding: 2px 0 2px var(--sp-4);
+  color: var(--text-muted);
+  border-left: 2px solid var(--border-strong);
+}
+
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.prose hr {
+  margin: 2em 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 1.5em;
+}
+
+.empty {
+  color: var(--text-muted);
+}
+
+@media (max-width: 599px) {
+  .prose {
+    font-size: 1rem;
+  }
+
+  .lead > p:first-child {
+    font-size: 1.125rem;
+  }
+}

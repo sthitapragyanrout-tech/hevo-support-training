@@ -1,0 +1,23 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--sp-12) var(--sp-4);
+}
+
+.title {
+  font-size: var(--fs-22);
+}
+
+.body {
+  color: var(--text-muted);
+}
+
+.skeleton {
+  height: 14px;
+  background: var(--border);
+  border-radius: var(--radius);
+}

@@ -1,0 +1,83 @@
+.shell {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.tile {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+  background: var(--accent-tint);
+  border-radius: 8px;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.done .tile {
+  color: #fff;
+  background: var(--success);
+}
+
+.muted .tile {
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.muted .title {
+  color: var(--text-muted);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin: 1px 0 0;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.actions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Lines up under the title, not under the icon tile. */
+.panel {
+  padding: 0 var(--sp-4) var(--sp-4) calc(var(--sp-4) + 32px + var(--sp-3));
+}
+
+@media (max-width: 599px) {
+  .panel {
+    padding: 0 var(--sp-3) var(--sp-4);
+  }
+
+  .shell {
+    flex-wrap: wrap;
+    padding: var(--sp-3);
+  }
+
+  .actions {
+    flex-basis: 100%;
+    padding-left: 44px;
+  }
+}

@@ -1,0 +1,99 @@
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: calc(100svh - var(--header-h));
+}
+
+/* Flush to the viewport edge, full height, docs-site style. */
+.sidebar {
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  height: calc(100svh - var(--header-h));
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.content {
+  min-width: 0;
+}
+
+@media (max-width: 1099px) {
+  .layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+}
+
+/* Below 900px: no sidebar column — a "Contents" bar and a drawer. */
+@media (max-width: 899px) {
+  .layout {
+    display: block;
+  }
+}
+
+.bar {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 10;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.contents {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 40px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+}
+
+.contents:hover {
+  background: var(--surface);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  width: min(320px, 88vw);
+  overflow-y: auto;
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+}
+
+.drawerTop {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--sp-2) var(--sp-2) 0;
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.close:hover {
+  background: var(--border);
+}

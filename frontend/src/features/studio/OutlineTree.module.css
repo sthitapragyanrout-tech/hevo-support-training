@@ -1,0 +1,115 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.empty {
+  margin: 0 var(--sp-2) var(--sp-2);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.module {
+  padding: 2px 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 32px;
+  padding-right: var(--sp-2);
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition: background-color 120ms ease-out;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.selected,
+.selected:hover {
+  background: var(--accent-tint);
+  border-left-color: var(--accent);
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 0;
+  text-align: left;
+  font-size: var(--fs-14);
+  line-height: 1.35;
+  color: var(--text);
+  background: none;
+  border: 0;
+  overflow-wrap: anywhere;
+}
+
+.module > .row .name {
+  font-weight: 600;
+}
+
+.lessons {
+  margin: 2px 0 6px 31px;
+  padding-left: var(--sp-1);
+  border-left: 1px solid var(--border-strong);
+}
+
+.lessonRow .name {
+  font-weight: 400;
+  color: var(--text-body);
+}
+
+.lessonRow.selected .name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  border-radius: 50%;
+}
+
+.ready {
+  color: #fff;
+  background: var(--success);
+}
+
+.todo {
+  border: 1.5px solid #d99a3f;
+}
+
+.hint {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.add {
+  padding-left: var(--sp-2);
+}
+
+.addModule {
+  padding: var(--sp-2) 0 0 var(--sp-3);
+}

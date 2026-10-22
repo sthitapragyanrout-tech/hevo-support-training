@@ -1,0 +1,28 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-6);
+  padding: 8px var(--sp-6);
+  font-size: var(--fs-14);
+  color: var(--text);
+  background: var(--accent-tint);
+  border-bottom: 1px solid var(--accent-tint-strong);
+}
+
+.banner p {
+  margin: 0;
+}
+
+.tag {
+  margin-right: var(--sp-2);
+  padding: 2px 8px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 10px;
+}

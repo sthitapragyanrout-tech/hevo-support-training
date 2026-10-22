@@ -1,0 +1,45 @@
+/* Content Node changelist — collapsible tree presentation. */
+
+#result_list td.field-tree_title {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tree-toggle,
+.tree-toggle-placeholder {
+  display: inline-block;
+  width: 14px;
+  flex: 0 0 14px;
+  text-align: center;
+}
+
+.tree-toggle {
+  cursor: pointer;
+  color: #666;
+  text-decoration: none;
+  user-select: none;
+}
+
+.tree-toggle:hover {
+  color: #205067;
+}
+
+.tree-add-child {
+  opacity: 0;
+  margin-left: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  color: #2b7d3a;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.tree-node:hover .tree-add-child,
+.tree-add-child:focus {
+  opacity: 1;
+}

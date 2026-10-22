@@ -1,0 +1,31 @@
+.icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+}
+
+.not_started {
+  background: transparent;
+}
+
+.current {
+  border-color: var(--accent);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.completed {
+  color: #fff;
+  background: var(--success);
+  border-color: var(--success);
+}

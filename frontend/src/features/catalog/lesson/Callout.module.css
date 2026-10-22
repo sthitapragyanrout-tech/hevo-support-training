@@ -1,0 +1,135 @@
+.callout {
+  margin: 2em 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-body);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+.body p {
+  margin: 0 0 0.9em;
+}
+
+.body ul,
+.body ol {
+  margin: 0 0 0.9em;
+}
+
+/* Key idea — the one flat teal-tint block. */
+.idea {
+  padding: var(--sp-4) var(--sp-4) var(--sp-4);
+  background: var(--accent-tint);
+  border-radius: var(--radius-lg);
+}
+
+.idea .body {
+  color: var(--text);
+}
+
+/* Why this matters — no box at all, just a teal eyebrow and prose. */
+.why {
+  margin: 2.25em 0 1.25em;
+}
+
+/* Support lens — a teal rail, transparent. */
+.support {
+  padding: 2px 0 2px var(--sp-4);
+  border-left: 3px solid var(--accent);
+}
+
+/* Customer scenario — a different voice: neutral surface, hairline border. */
+.scenario {
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.scenario .label {
+  color: var(--text-muted);
+}
+
+.scenario .title {
+  font-size: var(--fs-18);
+  letter-spacing: -0.01em;
+}
+
+/* The customer's own words: a nested quote reads as speech. */
+.scenario .body blockquote {
+  margin: 0 0 1em;
+  padding: var(--sp-2) 0 var(--sp-2) var(--sp-4);
+  font-size: 1.0625rem;
+  font-style: italic;
+  color: var(--text);
+  background: none;
+  border-left: 2px solid var(--border-strong);
+}
+
+/* Common pitfall — restrained amber (the single non-teal accent). */
+.pitfall {
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--warning-tint);
+  border-left: 3px solid var(--warning);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.pitfall .label {
+  color: var(--warning);
+}
+
+/* Takeaway — a closing section: teal rule, no box. */
+.takeaway {
+  margin: 3em 0 0;
+  padding-top: var(--sp-4);
+  border-top: 2px solid var(--accent);
+}
+
+.takeaway .body ul {
+  list-style: none;
+  padding: 0;
+}
+
+.takeaway .body li {
+  position: relative;
+  margin: 0.5em 0;
+  padding-left: 1.4em;
+}
+
+.takeaway .body li::before {
+  content: '';
+  position: absolute;
+  left: 0.2em;
+  top: 0.7em;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+@media (max-width: 599px) {
+  .callout {
+    margin: 1.75em 0;
+  }
+}

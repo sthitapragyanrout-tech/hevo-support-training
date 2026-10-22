@@ -1,0 +1,107 @@
+/* Same shape as the learner's lesson view: a flush outline on the left,
+ * the thing you're working on centred beside it. */
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+}
+
+.outline {
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100svh - var(--header-h));
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-2) var(--sp-8) 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.outlineHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 var(--sp-4) var(--sp-2);
+}
+
+.outlineHead h2 {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.outlineHead span {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.summary {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.canvas {
+  min-width: 0;
+  padding: var(--sp-8) var(--sp-8) var(--sp-16);
+}
+
+.inner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.locked {
+  margin: 0 0 var(--sp-6);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-14);
+  color: var(--text);
+  background: var(--accent-tint);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.error {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-14);
+  color: var(--danger);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-16) 0;
+  color: var(--text-body);
+}
+
+.empty h2 {
+  font-size: var(--fs-22);
+  color: var(--text);
+}
+
+.empty p {
+  max-width: 52ch;
+  line-height: 1.55;
+}
+
+@media (max-width: 899px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline {
+    position: static;
+    height: auto;
+    padding: var(--sp-2) var(--sp-2) var(--sp-3) 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .canvas {
+    padding: var(--sp-4) var(--sp-4) var(--sp-12);
+  }
+}

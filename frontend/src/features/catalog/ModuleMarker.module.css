@@ -1,0 +1,40 @@
+.marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.md {
+  width: 32px;
+  height: 32px;
+  font-size: var(--fs-13);
+}
+
+.sm {
+  width: 22px;
+  height: 22px;
+  font-size: 0.6875rem;
+}
+
+.current {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.complete {
+  color: var(--accent);
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}

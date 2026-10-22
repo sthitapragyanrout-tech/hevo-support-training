@@ -1,0 +1,7 @@
+.read {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--success);
+}

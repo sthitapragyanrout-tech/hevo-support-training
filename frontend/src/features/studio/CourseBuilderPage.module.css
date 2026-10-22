@@ -1,0 +1,109 @@
+.page {
+  min-height: calc(100svh - var(--header-h));
+  background: var(--bg);
+}
+
+/* The course bar: identity, journey and next move in one place. */
+.bar {
+  padding: var(--sp-4) var(--sp-6) 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3) var(--sp-6);
+}
+
+.identity {
+  min-width: 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--accent);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.titleRow h1 {
+  font-size: var(--fs-22);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.sub {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  margin-top: var(--sp-3);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--sp-6);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: var(--sp-2) 0 10px;
+  font-size: var(--fs-14);
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 120ms ease-out;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.stepper {
+  padding-bottom: 10px;
+}
+
+@media (max-width: 899px) {
+  .bar {
+    padding: var(--sp-3) var(--sp-4) 0;
+  }
+
+  .stepper {
+    display: none;
+  }
+
+  .actions {
+    width: 100%;
+  }
+}

@@ -1,0 +1,136 @@
+.search {
+  width: 320px;
+  max-width: 100%;
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.person strong {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.sub {
+  font-size: var(--fs-13);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.quiet {
+  color: var(--text-muted);
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--danger);
+}
+
+.course + .course {
+  margin-top: var(--sp-4);
+}
+
+.courseHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-2);
+}
+
+.courseHead h2 {
+  font-size: var(--fs-18);
+}
+
+.courseHead p {
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.activities {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.activity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 150px auto;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.activity + .activity {
+  border-top: 1px solid var(--border);
+}
+
+.activityTitle {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.status {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.s_completed {
+  color: var(--success);
+}
+
+.s_started {
+  color: var(--accent);
+}
+
+.s_exhausted,
+.s_not_started {
+  color: var(--text-muted);
+}
+
+.score {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.attempts {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0;
+  padding: var(--sp-2) 0 0;
+  border-top: 1px dashed var(--border);
+}
+
+.attempts li {
+  display: grid;
+  grid-template-columns: 110px 60px 1fr auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 4px 0;
+  font-size: var(--fs-13);
+  color: var(--text-body);
+}
+
+@media (max-width: 899px) {
+  .activity {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .attempts li {
+    grid-template-columns: 90px 50px 1fr;
+  }
+
+  .attempts li > :last-child {
+    display: none;
+  }
+}

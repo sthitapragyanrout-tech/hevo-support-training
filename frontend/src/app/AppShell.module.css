@@ -1,0 +1,93 @@
+.shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-6);
+  height: var(--header-h);
+  padding: 0 var(--sp-6);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-15);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.name {
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.hevo {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-1);
+  margin-right: auto;
+}
+
+/* The active page is marked on the header's own bottom edge. */
+.nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 120ms ease-out;
+}
+
+.nav a:hover {
+  color: var(--text);
+}
+
+.nav a.active {
+  color: var(--text);
+}
+
+.nav a.active::after {
+  content: '';
+  position: absolute;
+  right: var(--sp-3);
+  bottom: -1px;
+  left: var(--sp-3);
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.main {
+  flex: 1;
+  outline: none;
+}
+
+@media (max-width: 700px) {
+  .header {
+    gap: var(--sp-2);
+    padding: 0 var(--sp-4);
+  }
+
+  .name {
+    display: none;
+  }
+}

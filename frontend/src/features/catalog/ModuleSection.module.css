@@ -1,0 +1,176 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- sidebar (compact): a quiet journey map ---- */
+.compact {
+  padding: 2px 0;
+}
+
+.compactHeading {
+  margin: 0;
+  font-size: var(--fs-13);
+  letter-spacing: 0;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: 6px var(--sp-3) 6px var(--sp-3);
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  transition: background-color 120ms ease-out;
+}
+
+.toggle:hover {
+  background: var(--border);
+}
+
+.compactTitle {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-muted);
+  transition: transform 120ms ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* Lessons hang off a faint rail aligned under the module marker; the
+ * current lesson's accent bar sits on that rail ("you are here"). */
+.compact .list {
+  margin: 2px 0 6px 23px;
+  border-left: 1px solid var(--border-strong);
+  animation: reveal 140ms ease-out;
+}
+
+/* ---- landing (detailed): a stop on the journey ---- */
+.detailed {
+  --marker: 32px;
+  --pad: 36px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--marker) minmax(0, 1fr);
+  column-gap: var(--sp-4);
+  padding-top: var(--pad);
+}
+
+.detailed:first-child {
+  padding-top: var(--sp-4);
+}
+
+.marker {
+  grid-row: 1 / span 2;
+  position: relative;
+  z-index: 1;
+}
+
+/* The rail: down from this marker, and a bridge up to the previous stop. */
+.detailed:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--marker) / 2 - 0.5px);
+  top: calc(var(--pad) + var(--marker) + 6px);
+  bottom: -6px;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.detailed:first-child:not(:last-child)::before {
+  top: calc(var(--sp-4) + var(--marker) + 6px);
+}
+
+.detailed:not(:first-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--marker) / 2 - 0.5px);
+  top: 0;
+  height: calc(var(--pad) - 6px);
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.detailedHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  min-height: var(--marker);
+}
+
+.detailedTitle {
+  font-size: var(--fs-18);
+  line-height: 32px;
+}
+
+.summary {
+  max-width: 62ch;
+  margin-top: 2px;
+  color: var(--text-body);
+}
+
+.meta {
+  flex: none;
+  padding-top: 7px;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lessons {
+  grid-column: 2;
+  margin: var(--sp-3) 0 0 calc(var(--sp-3) * -1);
+}
+
+@media (max-width: 599px) {
+  .detailed {
+    --marker: 28px;
+    --pad: 28px;
+    column-gap: var(--sp-3);
+  }
+
+  .detailedHeader {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detailedTitle {
+    line-height: 28px;
+  }
+
+  .meta {
+    padding-top: 0;
+    order: 3;
+  }
+
+  .lessons {
+    margin-left: calc(var(--sp-2) * -1);
+  }
+}

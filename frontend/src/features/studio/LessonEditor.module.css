@@ -1,0 +1,89 @@
+/* The canvas: reads top to bottom the way the lesson will. */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
+.header {
+  margin: 0 calc(var(--sp-2) * -1);
+}
+
+.crumb {
+  margin: 0 0 var(--sp-1) var(--sp-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionsHead {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.heading {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.count {
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: var(--fs-12);
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-radius: 9px;
+}
+
+.empty {
+  max-width: 60ch;
+  font-size: var(--fs-14);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.addSection {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--danger);
+}
+
+.danger {
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.delete {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 4px 0;
+  font-size: var(--fs-13);
+  color: var(--danger);
+  background: none;
+  border: 0;
+}
+
+.delete:hover {
+  text-decoration: underline;
+}

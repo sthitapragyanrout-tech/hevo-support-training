@@ -1,0 +1,89 @@
+.root {
+  display: flex;
+  align-items: center;
+  /* Stay at the right edge even when there is no navigation beside the logo. */
+  margin-left: auto;
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 40px;
+  padding: 0 var(--sp-2) 0 var(--sp-1);
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: 20px;
+  transition: background-color 120ms ease-out;
+}
+
+.trigger:hover {
+  background: var(--surface-2);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-tint-strong);
+  border-radius: 50%;
+}
+
+.panel {
+  padding: var(--sp-1);
+}
+
+.email {
+  padding: var(--sp-2) var(--sp-3) 0;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.roles {
+  padding: 2px var(--sp-3) var(--sp-2);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sp-1);
+  border-top: 1px solid var(--border);
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 8px var(--sp-3);
+  font-size: var(--fs-14);
+  text-align: left;
+  color: var(--text-body);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.item:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.hint {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}

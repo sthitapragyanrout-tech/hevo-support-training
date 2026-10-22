@@ -1,0 +1,37 @@
+.root {
+  position: relative;
+  display: inline-block;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: var(--sp-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-pop);
+  animation: pop 120ms ease-out;
+}
+
+.up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.end {
+  right: 0;
+  left: auto;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}

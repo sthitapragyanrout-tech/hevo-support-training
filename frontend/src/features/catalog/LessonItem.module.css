@@ -1,0 +1,115 @@
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  color: var(--text-body);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.item:hover {
+  background: var(--surface);
+}
+
+.item:hover .title {
+  color: var(--accent);
+}
+
+.status {
+  padding-top: 3px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  overflow-wrap: anywhere;
+  transition: color 120ms ease-out;
+}
+
+.aside {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-top: 2px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.type {
+  display: inline-flex;
+}
+
+.minutes {
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sidebar row: quiet, one line of weight; type icon and minutes are muted. */
+.compact {
+  padding: 6px var(--sp-3) 6px 12px;
+  font-size: var(--fs-14);
+  line-height: 1.4;
+}
+
+.compact .aside {
+  gap: 6px;
+  padding-top: 1px;
+}
+
+.compact .minutes {
+  font-size: var(--fs-12);
+}
+
+.compact .type {
+  opacity: 0.7;
+}
+
+/* On the sidebar rail the accent bar replaces the rail segment. */
+.compact.current {
+  margin-left: -1px;
+}
+
+/* Landing row: title + one-line summary, type + minutes at the right. */
+.detailed {
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-3);
+  border-left-width: 0;
+  border-radius: var(--radius);
+}
+
+.detailed .title {
+  font-size: var(--fs-15);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.detailed .status {
+  padding-top: 4px;
+}
+
+.summary {
+  max-width: 62ch;
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+}
+
+/* Current lesson: tint + left accent bar (+ status icon, + aria-current). */
+.current {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--accent-tint);
+  border-left-color: var(--accent);
+}
+
+.current:hover {
+  background: var(--accent-tint);
+}

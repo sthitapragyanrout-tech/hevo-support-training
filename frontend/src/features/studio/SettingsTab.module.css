@@ -1,0 +1,36 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-6) var(--sp-16);
+}
+
+.page h2 {
+  font-size: var(--fs-18);
+}
+
+.facts {
+  margin: var(--sp-4) 0;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.facts dt {
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.note {
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+}

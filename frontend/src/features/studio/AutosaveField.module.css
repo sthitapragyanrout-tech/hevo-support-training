@@ -1,0 +1,106 @@
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.control {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  resize: vertical;
+  transition:
+    border-color 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.control:disabled {
+  color: var(--text-body);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.title {
+  padding: 6px 10px;
+  font-size: var(--fs-28);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.section {
+  font-size: var(--fs-18);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Titles read as text on the canvas; the box appears when you reach for it. */
+.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.ghost:focus {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.ghost:disabled {
+  color: var(--text);
+  background: transparent;
+  border-color: transparent;
+}
+
+.status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.saved {
+  color: var(--success);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.compact {
+  min-height: 0;
+}
+
+/* In tight lists, "Saving…" / "Saved" sit inside the field's corner so that
+ * saving never moves what you are about to click. Errors stay in the flow
+ * where they can be read in full. */
+.floating {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  padding: 0 4px;
+  line-height: 1.2;
+  background: var(--bg);
+  pointer-events: none;
+}

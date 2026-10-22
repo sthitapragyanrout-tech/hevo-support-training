@@ -1,0 +1,72 @@
+.ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.todo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--warning);
+  white-space: nowrap;
+  background: var(--warning-tint);
+  border: 1px solid #f0dcb8;
+  border-radius: 15px;
+}
+
+.todo:hover {
+  background: #fbefd8;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  background: var(--warning);
+  border-radius: 50%;
+}
+
+.heading {
+  padding: var(--sp-2) var(--sp-3) var(--sp-1);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 8px var(--sp-3);
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.link svg {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.link:hover {
+  background: var(--surface-2);
+}

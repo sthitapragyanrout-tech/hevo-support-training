@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hevo_training}
+      POSTGRES_USER: ${POSTGRES_USER:-hevo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hevo}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hevo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  web:
+    build: ./backend
+    command: uv run manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  pgdata:
+
+# `worker`, `beat`, `simbot`, and `nginx` are intentionally not defined yet —
+# no Celery tasks exist until M3, no bot service until M4, and prod-grade
+# reverse-proxy/serving is M6. See docs/architecture.md §13-14 and the M1
+# plan's rationale for deferring these services rather than wiring no-ops.

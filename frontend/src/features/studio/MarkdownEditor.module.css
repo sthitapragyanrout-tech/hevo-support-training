@@ -1,0 +1,159 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.label {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tools {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.insert {
+  color: var(--accent);
+}
+
+.modes {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface-2);
+  border-radius: 7px;
+}
+
+.mode {
+  padding: 3px 11px;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.mode:hover {
+  color: var(--text);
+}
+
+.on {
+  color: var(--text);
+  background: var(--bg);
+  box-shadow: var(--shadow-1);
+}
+
+.menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: 8px var(--sp-3);
+  text-align: left;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--surface-2);
+}
+
+.item svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.item strong {
+  display: block;
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.itemHint {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.area {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: var(--fs-15);
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  resize: none;
+  transition: border-color 120ms ease-out;
+}
+
+.area:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.area:focus {
+  border-color: var(--accent);
+}
+
+.area:disabled {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.preview {
+  min-height: 96px;
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+  background: var(--bg);
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+}
+
+.empty {
+  color: var(--text-muted);
+}
+
+.status {
+  min-height: 1.2em;
+  margin: 0;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.saved {
+  color: var(--success);
+}
+
+.error {
+  color: var(--danger);
+}

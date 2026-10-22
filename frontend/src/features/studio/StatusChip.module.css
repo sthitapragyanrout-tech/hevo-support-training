@@ -1,0 +1,43 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 8px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-body);
+  background: var(--surface-2);
+  border-radius: 12px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.published,
+.published_with_draft {
+  color: var(--success);
+  background: #ecf7f0;
+}
+
+.published .dot,
+.published_with_draft .dot {
+  background: var(--success);
+}
+
+.in_review {
+  color: var(--warning);
+  background: var(--warning-tint);
+}
+
+.in_review .dot {
+  background: var(--warning);
+}
+
+.archived .dot {
+  background: var(--border-strong);
+}

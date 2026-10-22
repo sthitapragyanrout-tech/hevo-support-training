@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% comment %}
+Extends admin/base.html (not admin/base_site.html) deliberately — since
+this project's templates/ dir is registered ahead of Django's own app
+templates, extending "admin/base_site.html" here would resolve back to
+this same file and recurse. The title/branding/nav-global blocks below are
+copied verbatim from Django's own admin/base_site.html so nothing is lost;
+extrastyle is new, added to fix the dashboard's hardcoded 600px width.
+{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+<style>
+  /* Django hardcodes the dashboard's #content to 600px (admin/css/base.css),
+     which is why "Site administration" and "Recent actions" were stuck in
+     a narrow column on the left with empty space on wide screens.
+
+     The two columns there (#content-main / #content-related) are laid out
+     with a classic float + negative-margin overlap hack, tuned for that
+     600px width — #content-related deliberately "bleeds" 300px past
+     #content's own right edge, relying on unused viewport space to its
+     right to land in. Once #content is widened toward the actual viewport
+     width, that slack disappears and the bleed becomes real horizontal
+     page overflow (exactly what showed up on a real screen, cut off on
+     the left). Rather than re-tune those coupled pixel values, replace
+     the whole mechanism with flexbox, scoped to .dashboard only, which
+     can't overflow its own container. */
+  .dashboard #content {
+    width: 100%;
+    max-width: 1400px;
+    /* Django's own #content has `padding: 20px 40px` with the default
+       content-box sizing, so max-width alone left the padding to add 80px
+       on top of it (1400px content + 80px padding = 1480px real box) —
+       wider than the viewport it was meant to fit inside. border-box
+       folds the padding back into the 1400px instead of adding to it. */
+    box-sizing: border-box;
+  }
+  .dashboard #content.colMS {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    margin-right: 0;
+  }
+  .dashboard #content-main {
+    float: none;
+    width: auto;
+    min-width: 0; /* let this shrink instead of forcing the row wider */
+    flex: 1 1 auto;
+  }
+  .dashboard #content-related {
+    float: none;
+    position: static;
+    width: 320px;
+    margin-right: 0;
+    flex: 0 0 320px;
+  }
+  @media (max-width: 900px) {
+    .dashboard #content.colMS {
+      flex-direction: column;
+    }
+    .dashboard #content-related {
+      width: 100%;
+      flex: 0 0 auto;
+    }
+  }
+</style>
+{% endblock %}
