@@ -125,9 +125,16 @@ class TestActivities:
         body = client.get(url("course", course["version"].id)).json()
         assert body == {
             "completed_lessons": [],
+            "awaiting_review_lessons": [],
             "activities": {},
             "attempts": {},
             "can_reset_attempts": False,
+            "watch": {},
+            "sim": {},
+            "rated": {},
+            "learning_order": "free",
+            "locked": {},
+            "next_lesson_id": course["lesson_a"].id,
         }
 
 
@@ -193,7 +200,7 @@ class TestCourseProgress:
 
     def test_is_a_constant_number_of_queries(self, lc, course, django_assert_max_num_queries):
         post(lc, "activity-complete", course["lesson_own"].id)
-        with django_assert_max_num_queries(6):
+        with django_assert_max_num_queries(10):
             assert lc.get(url("course", course["version"].id)).status_code == 200
 
 
@@ -214,7 +221,9 @@ class TestLearnerPayload:
         walk(response.json()["root"])
         assert acts["Own reading"]["config"] == {"source_url": "https://x.io"}
         assert acts["Own reading"]["completable"] is True
-        assert acts["Video"]["config"] == {}
+        # A video with nothing behind it exposes no source, and can't hold a lesson up.
+        assert acts["Video"]["config"].get("source") is None
+        assert "media_url" not in acts["Video"]["config"]
         assert acts["Video"]["completable"] is False
 
     def test_unknown_config_keys_on_a_reading_are_not_exposed(self, lc, course):

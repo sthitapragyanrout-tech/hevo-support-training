@@ -13,9 +13,11 @@ interface Props {
   /** Lessons to show (the full list, or a filtered subset). */
   lessons: Lesson[]
   statusOf: (lesson: Lesson) => LessonStatus
-  markerState: 'default' | 'current' | 'complete'
+  markerState: 'default' | 'current' | 'complete' | 'locked'
   /** The lesson being read, if any (sidebar). */
   currentId?: number | null
+  /** Why a lesson is locked, for its row. */
+  lockedHintOf?: (lesson: Lesson) => string | null
   /** Sidebar: collapsible disclosure. Landing: always-open journey stop. */
   variant: 'compact' | 'detailed'
   open?: boolean
@@ -30,6 +32,7 @@ export function ModuleSection({
   statusOf,
   markerState,
   currentId,
+  lockedHintOf,
   variant,
   open = true,
   onToggle,
@@ -54,6 +57,7 @@ export function ModuleSection({
             status={statusOf(lesson)}
             current={currentId === undefined ? undefined : lesson.node.id === currentId}
             variant={variant}
+            lockedHint={lockedHintOf?.(lesson)}
             onNavigate={onNavigate}
           />
         </li>

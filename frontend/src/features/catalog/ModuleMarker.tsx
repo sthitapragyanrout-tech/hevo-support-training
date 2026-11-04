@@ -5,7 +5,7 @@ interface Props {
   number: number
   /** `current` = the module holding the lesson being read / next to start.
    * `complete` only ever appears once real progress exists. */
-  state?: 'default' | 'current' | 'complete'
+  state?: 'default' | 'current' | 'complete' | 'locked'
   size?: 'sm' | 'md'
 }
 
@@ -14,7 +14,13 @@ interface Props {
 export function ModuleMarker({ number, state = 'default', size = 'md' }: Props) {
   return (
     <span className={`${styles.marker} ${styles[size]} ${styles[state]}`} aria-hidden="true">
-      {state === 'complete' ? <Icon name="check" size={size === 'sm' ? 11 : 14} strokeWidth={2} /> : String(number).padStart(2, '0')}
+      {state === 'complete' ? (
+        <Icon name="check" size={size === 'sm' ? 11 : 14} strokeWidth={2} />
+      ) : state === 'locked' ? (
+        <Icon name="lock" size={size === 'sm' ? 11 : 14} strokeWidth={1.75} />
+      ) : (
+        String(number).padStart(2, '0')
+      )}
     </span>
   )
 }

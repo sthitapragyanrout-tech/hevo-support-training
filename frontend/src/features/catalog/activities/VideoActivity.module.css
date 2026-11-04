@@ -1,0 +1,67 @@
+.watched {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-13);
+  font-weight: 600;
+  color: var(--success);
+}
+
+.soon {
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 760px;
+}
+
+/* One 16:9 box, whatever plays inside it. */
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0b1418;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.video,
+.embed,
+.embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0b1418;
+}
+
+.video:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.status {
+  margin: 0;
+  min-height: 1.4em;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.note {
+  color: var(--text-muted);
+}
+
+.problem {
+  color: var(--danger, #b3261e);
+}
+
+@media (max-width: 599px) {
+  .frame {
+    border-radius: 8px;
+  }
+}

@@ -34,8 +34,10 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "catalog.author_content",
         "progress.view_results",
         "progress.manage_attempts",
+        "manual_sim.rate_submissions",
+        "manual_sim.manage_reviews",
     ],
-    Role.Name.MENTOR: [],
+    Role.Name.MENTOR: ["manual_sim.rate_submissions"],
     Role.Name.ADMIN: [
         "catalog.author_content",
         "catalog.publish_courseversion",
@@ -44,6 +46,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "progress.view_results",
         "progress.manage_attempts",
         "audit.view_audit",
+        "manual_sim.rate_submissions",
+        "manual_sim.manage_reviews",
     ],
 }
 
@@ -59,6 +63,8 @@ KNOWN_ACTIONS: tuple[str, ...] = (
     "progress.view_results",
     "progress.manage_attempts",
     "audit.view_audit",
+    "manual_sim.rate_submissions",
+    "manual_sim.manage_reviews",
 )
 
 
@@ -83,10 +89,22 @@ ACTION_LABELS: dict[str, tuple[str, str]] = {
         "Let a learner retake a quiz by clearing their attempts.",
     ),
     "audit.view_audit": ("View the audit log", "See who changed what in the console."),
+    "manual_sim.rate_submissions": (
+        "Rate simulations",
+        "Rate the mentor-rated simulations of learners assigned to you and the shared review pool.",
+    ),
+    "manual_sim.manage_reviews": (
+        "Manage simulation reviews",
+        "Reassign reviews, extend deadlines, waive or close cases, and rate any submission.",
+    ),
 }
 
 # Actions an Admin must always keep, or nobody could fix a mistake.
-ADMIN_LOCKED_ACTIONS: tuple[str, ...] = ("accounts.manage_users", "accounts.manage_roles")
+ADMIN_LOCKED_ACTIONS: tuple[str, ...] = (
+    "accounts.manage_users",
+    "accounts.manage_roles",
+    "manual_sim.manage_reviews",
+)
 
 
 def _effective_permissions(user: User) -> set[str]:

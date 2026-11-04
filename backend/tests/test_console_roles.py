@@ -59,7 +59,11 @@ class TestMatrix:
 
     def test_the_admin_role_reports_what_it_must_keep(self, client, people, seeded):
         roles = {r["name"]: r for r in matrix(client, people["admin"])["roles"]}
-        assert roles["admin"]["locked"] == ["accounts.manage_users", "accounts.manage_roles"]
+        assert roles["admin"]["locked"] == [
+            "accounts.manage_users",
+            "accounts.manage_roles",
+            "manual_sim.manage_reviews",
+        ]
         assert roles["trainer"]["locked"] == []
 
     def test_describes_every_action_in_plain_words(self, client, people, seeded):
@@ -110,7 +114,7 @@ class TestChange:
 
     def test_admins_can_still_gain_or_lose_the_rest(self, client, people, seeded):
         client.force_login(people["admin"])
-        keep = ["accounts.manage_users", "accounts.manage_roles"]
+        keep = ["accounts.manage_users", "accounts.manage_roles", "manual_sim.manage_reviews"]
         assert put(client, "admin", keep).status_code == 200
         assert put(client, "admin", [*keep, "audit.view_audit"]).status_code == 200
 

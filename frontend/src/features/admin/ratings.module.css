@@ -1,0 +1,247 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-3);
+}
+
+.tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: var(--sp-2) var(--sp-3);
+  font: inherit;
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--accent, #205067);
+  font-weight: 600;
+}
+
+.stats {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.sub {
+  display: block;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.overdue {
+  color: var(--warning, #9a6700);
+  font-weight: 500;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--fs-13);
+  color: var(--danger, #b3261e);
+}
+
+.note {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-13);
+  color: var(--text-body);
+}
+
+.actionRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.field label {
+  font-size: var(--fs-13);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ the rating page */
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  min-width: 0;
+}
+
+.section h2 {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-13);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.prose {
+  margin: 0 0 var(--sp-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+}
+
+.criterion {
+  margin: 0 0 var(--sp-2);
+}
+
+.guidance {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: pre-wrap;
+}
+
+.banner {
+  margin: 0 0 var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-13);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.thread > li {
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+
+.thread summary {
+  cursor: pointer;
+  font-size: var(--fs-14);
+}
+
+.thumb {
+  display: block;
+  max-width: 280px;
+  max-height: 180px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: var(--sp-1) 0;
+}
+
+.files,
+.links {
+  list-style: none;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+}
+
+.form {
+  position: sticky;
+  top: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+@media (max-width: 960px) {
+  .form {
+    position: static;
+  }
+}
+
+.scoreRow {
+  border: 0;
+  margin: 0;
+  padding: 0 0 var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.scoreRow legend {
+  padding: 0;
+  font-weight: 600;
+  font-size: var(--fs-14);
+}
+
+.scale {
+  display: flex;
+  gap: var(--sp-1);
+  margin: var(--sp-2) 0;
+}
+
+.scale label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.scale input {
+  position: absolute;
+  opacity: 0;
+}
+
+.scale label:has(input:checked) {
+  background: var(--accent, #205067);
+  border-color: var(--accent, #205067);
+  color: #fff;
+}
+
+.scale label:has(input:focus-visible) {
+  outline: 2px solid var(--accent, #205067);
+  outline-offset: 2px;
+}
+
+.average {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

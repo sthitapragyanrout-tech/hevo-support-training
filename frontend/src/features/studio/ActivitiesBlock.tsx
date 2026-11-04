@@ -5,7 +5,10 @@ import { Popover } from '../../components/Popover'
 import { useBuilder } from './builderContext'
 import { AutosaveField } from './AutosaveField'
 import { QuizEditor, type EditorProps } from './QuizEditor'
+import { BotSimEditor } from './BotSimEditor'
+import { ManualSimEditor } from './ManualSimEditor'
 import { SchemaForm } from './SchemaForm'
+import { VideoEditor } from './VideoEditor'
 import styles from './ActivitiesBlock.module.css'
 import { studioApi } from './studioApi'
 import type { ActivityType, AuthActivity, AuthNode } from './types'
@@ -13,7 +16,12 @@ import { moveItem } from './treeHelpers'
 
 /** Types with their own authoring screen; everything else gets the generic
  * form generated from the type's schema. */
-const EDITORS: Record<string, ComponentType<EditorProps>> = { mcq: QuizEditor }
+const EDITORS: Record<string, ComponentType<EditorProps>> = {
+  mcq: QuizEditor,
+  video: VideoEditor,
+  bot_sim: BotSimEditor,
+  manual_sim: ManualSimEditor,
+}
 
 interface Props {
   node: AuthNode
@@ -221,7 +229,7 @@ function ActivityRow({
       {open && (
         <div className={styles.settings}>
           {type && Editor ? (
-            <Editor activity={activity} disabled={!editable} save={save} />
+            <Editor activity={activity} disabled={!editable} save={save} refresh={onSaved} />
           ) : type ? (
             <SchemaForm
               schema={type.config_schema}

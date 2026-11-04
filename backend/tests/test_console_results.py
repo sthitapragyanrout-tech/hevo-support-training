@@ -142,10 +142,39 @@ class TestPermissions:
             assert getattr(client, method)(path).status_code == 200, path
 
 
+def add_ticket_attempt(user, near, *, score):
+    """A finished practice ticket's attempt, on a lesson of the same course as `near`."""
+    from django.utils import timezone
+
+    from apps.catalog.models import Activity
+    from apps.progress.models import ActivityAttempt
+
+    ticket = Activity.objects.create(
+        content_node=near.content_node, activity_type="bot_sim", title="Practice ticket", config={}
+    )
+    ActivityAttempt.objects.create(
+        user=user,
+        activity=ticket,
+        number=1,
+        score=score,
+        passed=True,
+        details=[],
+        submitted_at=timezone.now(),
+    )
+    return ticket
+
+
 class TestLearnerList:
     def get(self, client, people, **params):
         as_user(client, people["trainer"])
         return client.get(url("learners"), params).json()
+
+    def test_a_practice_ticket_is_not_a_quiz_attempt(self, client, people, world):
+        add_ticket_attempt(people["ann"], world["alpha"]["quiz"], score=0.82)
+        rows = {r["email"]: r for r in self.get(client, people)["results"]}
+        assert rows["ann@example.com"]["quiz_attempts"] == 3  # unchanged: the ticket isn't one
+        alpha = self.get(client, people, course=world["alpha"]["course"].pk)["results"]
+        assert {r["email"]: r["quiz_attempts"] for r in alpha}["ann@example.com"] == 2
 
     def test_lists_learners_with_what_they_have_done(self, client, people, world):
         body = self.get(client, people)
@@ -379,6 +408,18 @@ class TestExport:
             ("2", "100", "Passed"),
         ]
 
+    def test_a_practice_ticket_is_scored_out_of_five_not_as_a_percent(self, client, people, world):
+        ticket = add_ticket_attempt(people["ann"], world["alpha"]["quiz"], score=0.82)
+        as_user(client, people["trainer"])
+        rows = self.rows(client)
+        assert rows[0][-2:] == ["Type", "Score out of 5"]
+        mine = [r for r in rows[1:] if r[5] == ticket.title]
+        assert [(r[7], r[8], r[10], r[11]) for r in mine] == [
+            ("", "Passed", "Practice ticket", "4.1")
+        ]
+        quizzes = [r for r in rows[1:] if r[5] != ticket.title]
+        assert all(r[10] == "Quiz" and r[11] == "" and r[7] != "" for r in quizzes)
+
     def test_filter_by_course(self, client, people, world):
         as_user(client, people["trainer"])
         rows = self.rows(client, course=world["beta"]["course"].pk)
@@ -396,3 +437,80 @@ class TestCourseOptions:
         as_user(client, people["trainer"])
         titles = [c["title"] for c in client.get(url("result-courses")).json()["results"]]
         assert titles == ["Alpha", "Beta"]
+
+
+class TestVideoRows:
+    """A learner's video shows how much was watched, and anything to look at."""
+
+    @pytest.fixture
+    def watched(self, people, media_dirs):
+        from apps.progress.models import VideoWatch
+        from tests.media_helpers import ready_asset, video_course
+
+        asset = ready_asset(people["trainer"], media_dirs)
+        activity = video_course(lambda *a, **k: people["admin"], asset, title="Vid")[4]
+        VideoWatch.objects.create(
+            user=people["ann"],
+            activity=activity,
+            duration=120.0,
+            credited_seconds=60.0,
+            ranges=[[0.0, 60.0]],
+            needs_review=True,
+            review_reasons=["over_budget", "multiple_sessions"],
+        )
+        ActivityProgress.objects.create(
+            user=people["ann"], activity=activity, started_at=timezone.now()
+        )
+        return activity
+
+    def video_of(self, client, people, who):
+        as_user(client, people["trainer"])
+        body = client.get(url("learner", people[who].pk)).json()
+        return next(a for c in body["courses"] for a in c["activities"] if a["type"] == "video")
+
+    def test_shows_how_much_was_watched_and_why_it_needs_a_look(self, client, people, watched):
+        video = self.video_of(client, people, "ann")
+        assert video["watch"]["watched_fraction"] == 0.5
+        assert video["watch"]["needs_review"] is True
+        assert video["watch"]["reasons"] == [
+            "Reported more watching than real time allows",
+            "Played in several tabs or devices at once",
+        ]
+        assert video["state"] == "started"
+
+    def test_other_activities_carry_no_watch_info(self, client, people, watched):
+        as_user(client, people["trainer"])
+        body = client.get(url("learner", people["ann"].pk)).json()
+        others = [a for c in body["courses"] for a in c["activities"] if a["type"] != "video"]
+        assert others and all(a["watch"] is None for a in others)
+
+    def test_a_learner_who_has_not_watched_it_has_zero(self, client, people, watched):
+        ActivityProgress.objects.create(
+            user=people["bob"], activity=watched, started_at=timezone.now()
+        )
+        video = self.video_of(client, people, "bob")
+        assert video["watch"] == {
+            "watched_fraction": 0.0,
+            "needs_review": False,
+            "reasons": [],
+            "fidelity": None,
+        }
+
+    def test_a_drive_video_reads_as_self_reported_not_as_a_percentage(
+        self, client, people, watched
+    ):
+        from apps.catalog.models import Activity
+
+        Activity.objects.filter(pk=watched.pk).update(
+            config={
+                "source": "drive",
+                "drive_url": "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWx/view",
+            }
+        )
+        video = self.video_of(client, people, "ann")
+        assert video["watch"] == {
+            "watched_fraction": None,
+            "needs_review": False,
+            "reasons": [],
+            "fidelity": "self_reported",
+        }

@@ -27,3 +27,6 @@ frontend/.vite/
 
 # OS
 .DS_Store
+
+# Celery filesystem broker (development only)
+backend/.celery-broker/

@@ -33,3 +33,25 @@ def make_role_user(db):
         return user
 
     return _make
+
+
+@pytest.fixture
+def media_dirs(tmp_path, settings):
+    """A private media folder and broker folder for one test."""
+    root = tmp_path / "media"
+    broker = tmp_path / "broker"
+    for sub in ("queue", "control", "processed"):
+        (broker / sub).mkdir(parents=True)
+    settings.MEDIA_ROOT = str(root)
+    settings.CELERY_BROKER_FOLDER = str(broker)
+    return root
+
+
+@pytest.fixture(scope="session")
+def sample_clip(tmp_path_factory):
+    """One 2-second clip shared by the whole run (ffmpeg only runs once)."""
+    from tests.media_helpers import HAVE_FFMPEG, make_clip
+
+    if not HAVE_FFMPEG:
+        pytest.skip("ffmpeg/ffprobe are not installed")
+    return make_clip(tmp_path_factory.mktemp("clips") / "sample.mp4")

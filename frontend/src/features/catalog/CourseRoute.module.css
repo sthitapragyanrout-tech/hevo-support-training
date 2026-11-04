@@ -1,0 +1,13 @@
+.orderNote {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-6);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.orderNote strong {
+  font-weight: 600;
+  color: var(--text);
+}

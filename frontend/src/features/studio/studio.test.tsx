@@ -476,6 +476,58 @@ describe('Schema-driven activity form', () => {
   })
 })
 
+describe('Learning order setting', () => {
+  const open = (c: AuthCourse, extra: Record<string, (call: Call) => { status?: number; body?: unknown }> = {}) => {
+    const calls = mockApi(PUBLISHER, {
+      [`GET ${BASE}/courses/1/`]: () => ({ body: c }),
+      [`GET ${BASE}/activity-types/`]: () => ({ body: TYPES }),
+      ...extra,
+    })
+    renderAt('/studio/courses/1/settings')
+    return calls
+  }
+
+  it('offers both orders and shows the one in force', async () => {
+    open(course({ learning_order: 'free' }))
+    const free = await screen.findByRole('radio', { name: /Learners can open any lesson/ })
+    expect(free).toBeChecked()
+    expect(screen.getByRole('radio', { name: /Learners go in order/ })).not.toBeChecked()
+    expect(screen.getByText(/never hold anyone up/)).toBeInTheDocument()
+  })
+
+  it('saves the choice straight away', async () => {
+    const calls = open(course({ learning_order: 'free' }), {
+      [`PATCH ${BASE}/courses/1/`]: () => ({ body: course({ learning_order: 'sequential' }) }),
+    })
+    fireEvent.click(await screen.findByRole('radio', { name: /Learners go in order/ }))
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ learning_order: 'sequential' }),
+    )
+    expect(await screen.findByRole('radio', { name: /Learners go in order/ })).toBeChecked()
+  })
+
+  it('does not call the server when the current choice is clicked again', async () => {
+    const calls = open(course({ learning_order: 'sequential' }))
+    fireEvent.click(await screen.findByRole('radio', { name: /Learners go in order/ }))
+    expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
+  })
+
+  it('is read-only once the course is submitted, and says why', async () => {
+    open(course({ editable: false, learning_order: 'sequential' }))
+    expect(await screen.findByRole('radio', { name: /Learners go in order/ })).toBeDisabled()
+    expect(screen.getByText('This can be changed while the course is a draft.')).toBeInTheDocument()
+  })
+
+  it('shows the server’s reason when it cannot be saved', async () => {
+    open(course({ learning_order: 'free' }), {
+      [`PATCH ${BASE}/courses/1/`]: () => ({ status: 409, body: { detail: 'This course is in review.' } }),
+    })
+    fireEvent.click(await screen.findByRole('radio', { name: /Learners go in order/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('This course is in review.')
+    expect(screen.getByRole('radio', { name: /Learners can open any lesson/ })).toBeChecked()
+  })
+})
+
 describe('Quiz editor', () => {
   function quizCourse(config: Record<string, unknown> = {}, maxAttempts = 0) {
     const c = course()

@@ -23,12 +23,73 @@ services:
   web:
     build: ./backend
     command: uv run manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment: &media-env
+      CELERY_BROKER_URL: redis://redis:6379/0
+      MEDIA_ROOT: /var/media
+    volumes:
+      - ./backend:/app
+      - media:/var/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Each kind of background work is its OWN process (not just its own queue), so a
+  # stuck model call can't starve video conversion or the reverse. Both are bounded.
+  #
+  # Turns uploaded videos into web-safe MP4s (ffmpeg): one at a time unless raised.
+  worker-media:
+    build: ./backend
+    command: >
+      uv run celery -A config worker -Q media -n media@%h
+      -c ${MEDIA_WORKER_CONCURRENCY:-1} -l info
+    volumes:
+      - ./backend:/app
+      - media:/var/media
+    env_file:
+      - .env
+    environment: *media-env
+    mem_limit: 2g
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Runs practice tickets: calls the language model, so concurrency is bounded here
+  # and by the shared rate limiter (SIMBOT_LLM_RPM / SIMBOT_LLM_TPM).
+  worker-sim:
+    build: ./backend
+    command: >
+      uv run celery -A config worker -Q sim -n sim@%h
+      -c ${SIMBOT_WORKER_CONCURRENCY:-4} --max-tasks-per-child 200 --prefetch-multiplier 1 -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    environment: *media-env
+    mem_limit: 1g
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # The one scheduler: runs the recovery sweepers for both kinds of work.
+  beat:
+    build: ./backend
+    command: uv run celery -A config beat -s /var/media/celerybeat-schedule -l info
+    volumes:
+      - ./backend:/app
+      - media:/var/media
+    env_file:
+      - .env
+    environment: *media-env
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,8 +98,8 @@ services:
 
 volumes:
   pgdata:
+  media:
 
-# `worker`, `beat`, `simbot`, and `nginx` are intentionally not defined yet —
-# no Celery tasks exist until M3, no bot service until M4, and prod-grade
-# reverse-proxy/serving is M6. See docs/architecture.md §13-14 and the M1
-# plan's rationale for deferring these services rather than wiring no-ops.
+# `simbot` and `nginx` are intentionally not defined yet — no bot service until
+# M4, and prod-grade reverse-proxy/serving is M6. See docs/architecture.md
+# §13-14.

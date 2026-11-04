@@ -17,11 +17,13 @@ class TestCapabilities:
 
     def test_trainer_can_author_but_not_publish(self, make_role_user):
         caps = capabilities_for(make_role_user(Role.Name.TRAINER))
-        # Authoring plus seeing (and resetting) learners' quiz results.
+        # Authoring, seeing (and resetting) learners' quiz results, and rating simulations.
         assert caps == [
             "catalog.author_content",
             "progress.view_results",
             "progress.manage_attempts",
+            "manual_sim.rate_submissions",
+            "manual_sim.manage_reviews",
         ]
         assert "catalog.publish_courseversion" not in caps
 

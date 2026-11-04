@@ -2,6 +2,7 @@ import { useMemo, type ReactNode } from 'react'
 import { Link, Outlet, useParams } from 'react-router-dom'
 
 import { PageState } from '../../components/PageState'
+import styles from './CourseRoute.module.css'
 import { catalogApi, type CourseTree } from '../../lib/api'
 import type { CourseContext } from './courseContext'
 import { flattenLessons, getModules } from './treeUtils'
@@ -67,6 +68,12 @@ export function CourseRouteBase({ load, basePathFor, preview, banner, backTo }: 
   return (
     <>
       {banner}
+      {preview && data?.learning_order === 'sequential' && (
+        <p className={styles.orderNote} role="note">
+          This course is set to <strong>go in order</strong>. Learners will see later lessons locked
+          until the ones before them are complete; the preview shows everything open.
+        </p>
+      )}
       <Outlet context={context} />
     </>
   )

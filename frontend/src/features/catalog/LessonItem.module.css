@@ -113,3 +113,22 @@
 .current:hover {
   background: var(--accent-tint);
 }
+
+/* Locked: muted, calm — a normal state, never an error colour. */
+.locked {
+  color: var(--text-muted);
+}
+
+.locked .title {
+  color: var(--text-muted);
+}
+
+span.locked {
+  cursor: default;
+}
+
+.upNext {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--accent);
+}

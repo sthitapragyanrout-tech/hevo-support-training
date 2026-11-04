@@ -83,6 +83,10 @@ class LessonCompletion(models.Model):
         "catalog.ContentNode", on_delete=models.CASCADE, related_name="completions"
     )
     completed_at = models.DateTimeField()
+    # The learner may move on, but something in this lesson still awaits a pass (a mentor's
+    # rating of work they handed in). It opens the next lesson; it is not counted as complete
+    # anywhere until it settles.
+    provisional = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
@@ -91,3 +95,61 @@ class LessonCompletion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} · {self.node}"
+
+
+class VideoWatch(models.Model):
+    """How much of a video one learner has *verifiably* watched.
+
+    `ranges` is the server's own record of credited coverage (merged, sorted),
+    grown only by what real elapsed time allows (see `progress/watch.py`); the
+    browser never says "completed" — the server decides, from this. One row per
+    (learner, video activity), locked while a heartbeat is applied so parallel
+    tabs and racing requests can't double-count.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="video_watches"
+    )
+    activity = models.ForeignKey(
+        "catalog.Activity", on_delete=models.CASCADE, related_name="watches"
+    )
+    ranges = models.JSONField(default=list)
+    duration = models.FloatField(default=0)
+    credited_seconds = models.FloatField(default=0)
+    last_position = models.FloatField(default=0)
+
+    # The credit bucket: refilled by *server* time, drained by credited seconds.
+    budget = models.FloatField(default=0)
+    budget_at = models.DateTimeField(null=True, blank=True)
+
+    # Heartbeat bookkeeping (idempotency, replay and concurrency detection).
+    session_id = models.UUIDField(null=True, blank=True)
+    last_seq = models.BigIntegerField(default=-1)
+    last_reply = models.JSONField(default=dict)
+    heartbeats = models.PositiveIntegerField(default=0)
+    first_heartbeat_at = models.DateTimeField(null=True, blank=True)
+    last_heartbeat_at = models.DateTimeField(null=True, blank=True)
+
+    # What was refused or looks unusual — for trainers, never for blocking.
+    rejected_seconds = models.FloatField(default=0)
+    hidden_seconds = models.FloatField(default=0)
+    fast_heartbeats = models.PositiveIntegerField(default=0)
+    # The most credit any single heartbeat earned (an honest player's is ~15 s).
+    longest_credit = models.FloatField(default=0)
+    session_overlaps = models.PositiveIntegerField(default=0)
+    needs_review = models.BooleanField(default=False)
+    review_reasons = models.JSONField(default=list)
+    # "verified" = our own player and file; "best_effort" = an embedded player.
+    fidelity = models.CharField(max_length=16, default="verified")
+
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "activity"], name="uniq_video_watch")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.activity} · {self.credited_seconds:.0f}s"

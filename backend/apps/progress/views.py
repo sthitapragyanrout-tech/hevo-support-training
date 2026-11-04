@@ -2,9 +2,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from . import services
+from . import services, watching
 
 
 class ProgressView(APIView):
@@ -14,6 +15,10 @@ class ProgressView(APIView):
     permission_classes = [IsAuthenticated]
 
     def handle_exception(self, exc):
+        if isinstance(exc, services.LessonLocked):
+            return Response(
+                {"detail": exc.message, "blocked_by": exc.blocked_by}, status=exc.status_code
+            )
         if isinstance(exc, services.LessonBlocked):
             return Response({"detail": exc.message, "pending": exc.pending}, status=exc.status_code)
         if isinstance(exc, services.ProgressError):
@@ -51,6 +56,24 @@ class ActivityAttemptView(ProgressView):
     def delete(self, request: Request, pk: int) -> Response:
         services.reset_attempts(request.user, pk)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WatchThrottle(UserRateThrottle):
+    scope = "video_watch"
+
+
+class ActivityWatchView(ProgressView):
+    """A learner's own watch state (GET) and heartbeats (POST). The browser
+    sends what it played; the server decides what counts and whether the video
+    is finished — there is no "mark watched" here."""
+
+    throttle_classes = [WatchThrottle]
+
+    def get(self, request: Request, pk: int) -> Response:
+        return Response(watching.watch_state(request.user, pk))
+
+    def post(self, request: Request, pk: int) -> Response:
+        return Response(watching.record_watch(request.user, pk, request.data))
 
 
 class LessonCompleteView(ProgressView):

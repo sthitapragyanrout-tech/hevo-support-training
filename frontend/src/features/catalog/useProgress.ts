@@ -5,6 +5,11 @@ import {
   type ActivityState,
   type AttemptResult,
   type AttemptSummary,
+  type WatchBody,
+  type WatchReply,
+  type RatedSummary,
+  type SimSummary,
+  type WatchSummary,
 } from '../../lib/api'
 
 export interface Progress {
@@ -14,11 +19,28 @@ export interface Progress {
   /** Ids of lessons the learner has completed. Module/course progress is
    * always derived from this. */
   completed: Set<number>
+  /** Lessons moved past while a mentor's rating is still awaited: open for what follows, but
+   * not complete (and never counted as such) until it passes. */
+  awaiting: Set<number>
   activities: Record<number, ActivityState>
   /** Tries so far on scored activities (quizzes), by activity id. */
   attempts: Record<number, AttemptSummary>
+  /** How much of each started video has been verifiably watched, by activity id. */
+  watch: Record<number, WatchSummary>
+  /** Practice tickets opened so far, by activity id. */
+  sim: Record<number, SimSummary>
+  /** Mentor-rated simulations opened so far, by activity id. */
+  rated: Record<number, RatedSummary>
+  /** Re-read progress from the server (after something finished elsewhere). */
+  refresh: () => Promise<void>
   /** Show "Reset attempts" (testing only; the server decides). */
   canResetAttempts: boolean
+  /** `sequential`: lessons unlock in order. */
+  learningOrder: 'free' | 'sequential'
+  /** What stands between the learner and this lesson, or null if it is open. */
+  lockOf: (lessonId: number) => { blockedBy: number; title: string } | null
+  /** The server's idea of what to do next (open, unfinished, required first). */
+  nextLessonId: number | null
   /** A plain-language problem from the last action, if any. */
   error: string | null
   startActivity: (id: number) => Promise<void>
@@ -28,6 +50,10 @@ export interface Progress {
   submitAttempt: (id: number, answers: number[][]) => Promise<AttemptResult>
   /** Forget the learner's tries so the activity can be taken again. */
   resetAttempts: (id: number) => Promise<void>
+  /** Send a player heartbeat. The server alone decides what counts, and when a
+   * video is finished — this just shows its answer. Rejects with a readable
+   * message (and an HTTP status on `ApiError`). */
+  sendWatch: (id: number, body: WatchBody, keepalive?: boolean) => Promise<WatchReply>
   completeLesson: (id: number) => Promise<void>
   uncompleteLesson: (id: number) => Promise<void>
   clearError: () => void
@@ -36,18 +62,32 @@ export interface Progress {
 interface Snapshot {
   versionId: number | null
   completed: Set<number>
+  awaiting: Set<number>
   activities: Record<number, ActivityState>
   attempts: Record<number, AttemptSummary>
+  watch: Record<number, WatchSummary>
+  sim: Record<number, SimSummary>
+  rated: Record<number, RatedSummary>
   canReset: boolean
+  learningOrder: 'free' | 'sequential'
+  locked: Record<number, { blockedBy: number; title: string }>
+  nextLessonId: number | null
   loaded: boolean
 }
 
 const EMPTY: Snapshot = {
   versionId: null,
   completed: new Set(),
+  awaiting: new Set(),
   activities: {},
   attempts: {},
+  watch: {},
+  sim: {},
+  rated: {},
   canReset: false,
+  learningOrder: 'free',
+  locked: {},
+  nextLessonId: null,
   loaded: false,
 }
 
@@ -57,15 +97,24 @@ const noop = async () => {}
 export const INERT_PROGRESS: Progress = {
   available: false,
   completed: new Set(),
+  awaiting: new Set(),
   activities: {},
   attempts: {},
+  watch: {},
+  sim: {},
+  rated: {},
+  refresh: noop,
   canResetAttempts: false,
+  learningOrder: 'free',
+  lockOf: () => null,
+  nextLessonId: null,
   error: null,
   startActivity: noop,
   completeActivity: noop,
   uncompleteActivity: noop,
   submitAttempt: () => Promise.reject(new Error('Progress isn’t recorded here.')),
   resetAttempts: noop,
+  sendWatch: () => Promise.reject(new Error('Progress isn’t recorded here.')),
   completeLesson: noop,
   uncompleteLesson: noop,
   clearError: () => {},
@@ -87,13 +136,27 @@ export function useProgress(versionId: number | null, enabled = true): Progress 
     setState({
       versionId,
       completed: new Set(data.completed_lessons),
+      awaiting: new Set(data.awaiting_review_lessons ?? []),
       activities: Object.fromEntries(
         Object.entries(data.activities).map(([id, s]) => [Number(id), s]),
       ),
       attempts: Object.fromEntries(
         Object.entries(data.attempts ?? {}).map(([id, a]) => [Number(id), a]),
       ),
+      watch: Object.fromEntries(
+        Object.entries(data.watch ?? {}).map(([id, w]) => [Number(id), w]),
+      ),
+      sim: Object.fromEntries(Object.entries(data.sim ?? {}).map(([id, v]) => [Number(id), v])),
+      rated: Object.fromEntries(Object.entries(data.rated ?? {}).map(([id, v]) => [Number(id), v])),
       canReset: data.can_reset_attempts === true,
+      learningOrder: data.learning_order ?? 'free',
+      locked: Object.fromEntries(
+        Object.entries(data.locked ?? {}).map(([id, l]) => [
+          Number(id),
+          { blockedBy: l.blocked_by, title: l.blocked_by_title },
+        ]),
+      ),
+      nextLessonId: data.next_lesson_id ?? null,
       loaded: true,
     })
   }, [versionId])
@@ -136,9 +199,17 @@ export function useProgress(versionId: number | null, enabled = true): Progress 
     return {
       available: state.loaded,
       completed: state.completed,
+      awaiting: state.awaiting,
       activities: state.activities,
       attempts: state.attempts,
+      watch: state.watch,
+      sim: state.sim,
+      rated: state.rated,
+      refresh,
       canResetAttempts: state.canReset,
+      learningOrder: state.learningOrder,
+      lockOf: (lessonId) => state.locked[lessonId] ?? null,
+      nextLessonId: state.nextLessonId,
       error,
       clearError: () => setError(null),
       startActivity: (id) =>
@@ -174,6 +245,20 @@ export function useProgress(versionId: number | null, enabled = true): Progress 
         })
         return result
       },
+      sendWatch: async (id, body, keepalive = false) => {
+        const reply = await progressApi.watch(id, body, keepalive)
+        setState((s) => ({
+          ...s,
+          watch: {
+            ...s.watch,
+            [id]: { watched_fraction: reply.watched_fraction, position: reply.position },
+          },
+          activities: reply.state ? { ...s.activities, [id]: reply.state } : s.activities,
+        }))
+        // Finishing may change what the lesson is waiting for.
+        if (reply.completed && state.activities[id] !== 'completed') void refresh()
+        return reply
+      },
       resetAttempts: async (id) => {
         await progressApi.resetAttempts(id)
         // The lesson may have been reopened, so take the server's word for it.
@@ -181,9 +266,12 @@ export function useProgress(versionId: number | null, enabled = true): Progress 
       },
       completeLesson: (id) =>
         attempt(
-          (s) => ({ ...s, completed: new Set(s.completed).add(id) }),
+          // Whether it is complete, or only open while a rating is awaited, is the server's
+          // call, so show nothing until it has answered.
+          (s) => s,
           () => progressApi.completeLesson(id),
-          { reconcile: false },
+          // The server decides what this unlocked.
+          { reconcile: true },
         ),
       uncompleteLesson: (id) =>
         attempt(
@@ -193,7 +281,7 @@ export function useProgress(versionId: number | null, enabled = true): Progress 
             return { ...s, completed }
           },
           () => progressApi.uncompleteLesson(id),
-          { reconcile: false },
+          { reconcile: true },
         ),
     }
   }, [live, state, error, refresh])

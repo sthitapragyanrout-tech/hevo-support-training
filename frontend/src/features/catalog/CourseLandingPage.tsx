@@ -8,12 +8,12 @@ import { activityMix } from './activityTypes'
 import { useCourse } from './courseContext'
 import { parseCourseIntro } from './courseIntro'
 import styles from './CourseLandingPage.module.css'
+import { lessonStatus, moduleMarker, unlockHint } from './lessonState'
 import { ModuleSection } from './ModuleSection'
 import {
   firstIncompleteLesson,
   formatMinutes,
   lessonMinutes,
-  moduleComplete,
   pluralize,
   searchLessons,
   totalMinutes,
@@ -36,7 +36,11 @@ export function CourseLandingPage() {
   const doneCount = lessons.filter((l) => progress.completed.has(l.node.id)).length
   const allDone = lessons.length > 0 && doneCount === lessons.length
   const minutes = totalMinutes(lessons)
-  const target = (started ? firstIncompleteLesson(lessons, progress.completed) : null) ?? lessons[0]
+  const serverNext = lessons.find((l) => l.node.id === progress.nextLessonId)
+  const target =
+    (started ? (serverNext ?? firstIncompleteLesson(lessons, progress.completed)) : null) ??
+    serverNext ??
+    lessons[0]
   const targetMinutes = target ? lessonMinutes(target) : null
   const { lead, outcomes } = parseCourseIntro(root.description)
   const mix = activityMix(lessons)
@@ -62,9 +66,7 @@ export function CourseLandingPage() {
     .map((m) => ({ module: m, lessons: m.lessons.filter((l) => matches.has(l.node.id)) }))
     .filter((m) => !filtering || m.lessons.length > 0)
 
-  function statusOf(lesson: Lesson): LessonStatus {
-    return progress.completed.has(lesson.node.id) ? 'completed' : 'not_started'
-  }
+  const statusOf = (lesson: Lesson): LessonStatus => lessonStatus(lesson, progress)
 
   return (
     <div className={styles.page}>
@@ -183,13 +185,8 @@ export function CourseLandingPage() {
                 module={module}
                 lessons={shown}
                 statusOf={statusOf}
-                markerState={
-                  started && moduleComplete(module, progress.completed)
-                    ? 'complete'
-                    : target && module.node.id === target.moduleId
-                      ? 'current'
-                      : 'default'
-                }
+                lockedHintOf={(lesson) => unlockHint(lesson, progress)}
+                markerState={moduleMarker(module, progress, target?.moduleId ?? null)}
                 variant="detailed"
               />
             ))}

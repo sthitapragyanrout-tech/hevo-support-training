@@ -14,11 +14,16 @@ import { AuditPage } from './features/admin/AuditPage'
 import { CourseDetailPage } from './features/admin/CourseDetailPage'
 import { CoursesPage } from './features/admin/CoursesPage'
 import { LearnerDetailPage } from './features/admin/LearnerDetailPage'
+import { DashboardPage } from './features/admin/DashboardPage'
 import { LearnersPage } from './features/admin/LearnersPage'
+import { PracticeScenariosPage } from './features/admin/PracticeScenariosPage'
+import { RatingPage } from './features/admin/RatingPage'
+import { RatingsPage } from './features/admin/RatingsPage'
 import { QuizDetailPage } from './features/admin/QuizDetailPage'
 import { QuizzesPage } from './features/admin/QuizzesPage'
 import { RolesPage } from './features/admin/RolesPage'
 import { SignInsPage } from './features/admin/SignInsPage'
+import { SimTranscriptPage } from './features/admin/SimTranscriptPage'
 import { UserDetailPage } from './features/admin/UserDetailPage'
 import { UsersPage } from './features/admin/UsersPage'
 import { CourseBuilderPage } from './features/studio/CourseBuilderPage'
@@ -40,6 +45,8 @@ const CONSOLE_ACTIONS = [
   CAN.manageRoles,
   CAN.authorContent,
   CAN.publishCourse,
+  CAN.rateSimulations,
+  CAN.manageReviews,
 ]
 
 function App() {
@@ -82,10 +89,12 @@ function App() {
             }
           >
             <Route index element={<Navigate to="learners" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="learners" element={<LearnersPage />} />
             <Route path="learners/:userId" element={<LearnerDetailPage />} />
             <Route path="quizzes" element={<QuizzesPage />} />
             <Route path="quizzes/:activityId" element={<QuizDetailPage />} />
+            <Route path="sessions/:sessionId" element={<SimTranscriptPage />} />
           </Route>
           <Route
             path="courses"
@@ -97,6 +106,27 @@ function App() {
           >
             <Route index element={<CoursesPage />} />
             <Route path=":courseId" element={<CourseDetailPage />} />
+          </Route>
+          <Route
+            path="ratings"
+            element={
+              <RequireCapability any={[CAN.rateSimulations, CAN.manageReviews]}>
+                <Outlet />
+              </RequireCapability>
+            }
+          >
+            <Route index element={<RatingsPage />} />
+            <Route path=":submissionId" element={<RatingPage />} />
+          </Route>
+          <Route
+            path="practice"
+            element={
+              <RequireCapability any={[CAN.authorContent, CAN.publishCourse]}>
+                <Outlet />
+              </RequireCapability>
+            }
+          >
+            <Route index element={<PracticeScenariosPage />} />
           </Route>
           <Route
             path="users"

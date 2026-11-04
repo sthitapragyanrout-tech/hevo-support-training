@@ -126,7 +126,11 @@ def clone_version(source: CourseVersion) -> CourseVersion:
     """Copy `source`'s whole tree (nodes + activities, config deep-copied)
     into a new draft version of the same course. The source is untouched."""
     latest = source.course.versions.order_by("-version").values_list("version", flat=True).first()
-    new_version = CourseVersion.objects.create(course=source.course, version=(latest or 0) + 1)
+    new_version = CourseVersion.objects.create(
+        course=source.course,
+        version=(latest or 0) + 1,
+        learning_order=source.learning_order,
+    )
 
     nodes = list(source.nodes.prefetch_related("activities"))
     children: dict[int | None, list[ContentNode]] = defaultdict(list)
@@ -358,14 +362,23 @@ def activity_needs_setup(activity: Activity) -> bool:
     return bool(validate_config(activity.activity_type, activity.config, strict=True))
 
 
-def _validate_activity_config(activity_type: str, config) -> None:
+def _validate_activity_config(activity_type: str, config, actor=None) -> None:
     errors = validate_config(activity_type, config, strict=False)
     if errors:
         raise InvalidOperation(errors[0])
+    # Who-may-use-what (an uploaded video must be the author's own). Only checked
+    # when we know who is saving; internal copies (versioning, import) pass none.
+    descriptor = get_type(activity_type)
+    if actor is not None and descriptor is not None and descriptor.authorize_config is not None:
+        problems = descriptor.authorize_config(config, actor)
+        if problems:
+            raise InvalidOperation(problems[0])
 
 
 @transaction.atomic
-def add_activity(node: ContentNode, *, activity_type: str, title: str = "", **fields) -> Activity:
+def add_activity(
+    node: ContentNode, *, activity_type: str, title: str = "", actor=None, **fields
+) -> Activity:
     """Add an activity to a lesson or section. The config may be unfinished
     (it is then flagged "needs setup" and blocks publishing, not saving)."""
     assert_editable(node.course_version)
@@ -376,7 +389,7 @@ def add_activity(node: ContentNode, *, activity_type: str, title: str = "", **fi
         raise InvalidOperation(f"Unknown activity type “{activity_type}”.")
     config = fields.pop("config", None)
     config = copy.deepcopy(descriptor.default_config) if config is None else config
-    _validate_activity_config(activity_type, config)
+    _validate_activity_config(activity_type, config, actor)
     unknown = set(fields) - set(ACTIVITY_EDITABLE_FIELDS)
     if unknown:
         raise InvalidOperation(f"Can't set: {', '.join(sorted(unknown))}.")
@@ -395,13 +408,13 @@ def add_activity(node: ContentNode, *, activity_type: str, title: str = "", **fi
 
 
 @transaction.atomic
-def update_activity(activity: Activity, **changes) -> Activity:
+def update_activity(activity: Activity, *, actor=None, **changes) -> Activity:
     assert_editable(activity.content_node.course_version)
     unknown = set(changes) - set(ACTIVITY_EDITABLE_FIELDS)
     if unknown:
         raise InvalidOperation(f"Can't change: {', '.join(sorted(unknown))}.")
     if "config" in changes:
-        _validate_activity_config(activity.activity_type, changes["config"])
+        _validate_activity_config(activity.activity_type, changes["config"], actor)
     if "title" in changes:
         changes["title"] = _clean_title(changes["title"])
     for field, value in changes.items():
@@ -459,6 +472,16 @@ def update_overview(version: CourseVersion, *, title: str | None, description: s
     return update_node(root, **changes)
 
 
+def set_learning_order(version: CourseVersion, order: str) -> CourseVersion:
+    """How learners move through the course: any lesson, or in order."""
+    assert_editable(version)
+    if order not in CourseVersion.LearningOrder.values:
+        raise InvalidOperation("Choose “any lesson” or “in order”.")
+    version.learning_order = order
+    version.save(update_fields=["learning_order"])
+    return version
+
+
 # --------------------------------------------------------- review and publish
 
 
@@ -501,6 +524,15 @@ def publish_checklist(version: CourseVersion) -> list[ChecklistIssue]:
                         f"“{activity.title}” in “{node.title}” needs setup: {errors[0]}", node.id
                     )
                 )
+                continue
+            descriptor = get_type(activity.activity_type)
+            if descriptor is not None and descriptor.check_warnings is not None:
+                for note in descriptor.check_warnings(activity.config, activity):
+                    issues.append(
+                        ChecklistIssue(
+                            f"“{activity.title}” in “{node.title}”: {note}", node.id, "warning"
+                        )
+                    )
     return issues
 
 

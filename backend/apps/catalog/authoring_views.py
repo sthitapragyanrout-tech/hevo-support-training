@@ -117,6 +117,7 @@ def _course_detail(course: Course, user) -> dict[str, Any]:
         **_course_summary(course),
         "version": _version_payload(shown),
         "published_version": _version_payload(status_.published_version),
+        "learning_order": shown.learning_order if shown else CourseVersion.LearningOrder.FREE,
         "editable": editable and can_author,
         "actions": {
             "start_draft": can_author and status_.key == "published",
@@ -156,6 +157,7 @@ class CourseCreateInput(serializers.Serializer):
 class OverviewInput(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=False)
     description = serializers.CharField(required=False, allow_blank=True)
+    learning_order = serializers.CharField(required=False)
 
 
 class NodeCreateInput(serializers.Serializer):
@@ -267,6 +269,8 @@ class CourseDetailView(AuthoringView):
         services.update_overview(
             version, title=data.get("title"), description=data.get("description")
         )
+        if "learning_order" in data:
+            services.set_learning_order(version, data["learning_order"])
         return Response(_course_detail(course, request.user))
 
 
@@ -416,7 +420,7 @@ class NodeActivitiesView(AuthoringView):
         )
         self.authorize(request, _course_of(node))
         data = _validated(ActivityCreateInput, request)
-        activity = services.add_activity(node, **data)
+        activity = services.add_activity(node, actor=request.user, **data)
         return Response(AuthoringActivitySerializer(activity).data, status=status.HTTP_201_CREATED)
 
 
@@ -441,7 +445,7 @@ class ActivityDetailView(AuthoringView):
     def patch(self, request: Request, pk: int) -> Response:
         activity = self._activity(request, pk)
         changes = _validated(ActivityUpdateInput, request, partial=True)
-        updated = services.update_activity(activity, **changes)
+        updated = services.update_activity(activity, actor=request.user, **changes)
         return Response(AuthoringActivitySerializer(updated).data)
 
     def delete(self, request: Request, pk: int) -> Response:

@@ -136,7 +136,10 @@ class TestActivityConfigValidation:
         "activity_type,config",
         [
             (Activity.ActivityType.READING, {"source_url": "https://example.com/doc"}),
-            (Activity.ActivityType.VIDEO, {"video_asset_ref": "asset-1"}),
+            (
+                Activity.ActivityType.VIDEO,
+                {"source": "youtube", "youtube_url": "https://youtu.be/dQw4w9WgXcQ"},
+            ),
             (
                 Activity.ActivityType.MCQ,
                 {"questions": [{"text": "q1", "choices": ["a", "b"], "answer": 0}]},
@@ -155,7 +158,7 @@ class TestActivityConfigValidation:
         "activity_type,config",
         [
             (Activity.ActivityType.READING, {}),  # missing required source_url
-            (Activity.ActivityType.VIDEO, {}),  # missing required video_asset_ref
+            (Activity.ActivityType.VIDEO, {}),  # no video chosen
             (Activity.ActivityType.MCQ, {"questions": []}),  # violates minItems
             # missing course_url
             (Activity.ActivityType.EXTERNAL_COURSE, {"provider_name": "Scaler"}),

@@ -3,8 +3,11 @@ import type { ComponentType } from 'react'
 import { activityIcon, ACTIVITY_LABELS } from '../activityTypes'
 import { ActivityShell } from './ActivityShell'
 import styles from './ActivityRunner.module.css'
+import { ManualSimActivity } from './ManualSimActivity'
 import { QuizActivity } from './QuizActivity'
 import { ReadingActivity } from './ReadingActivity'
+import { SimActivity } from './SimActivity'
+import { VideoActivity } from './VideoActivity'
 import type { RendererProps } from './types'
 
 /** The learner-side half of the activity registry: which component runs
@@ -12,6 +15,9 @@ import type { RendererProps } from './types'
 const RENDERERS: Record<string, ComponentType<RendererProps>> = {
   reading: ReadingActivity,
   mcq: QuizActivity,
+  video: VideoActivity,
+  bot_sim: SimActivity,
+  manual_sim: ManualSimActivity,
 }
 
 /** Types without a renderer yet keep the same frame and say so plainly. */

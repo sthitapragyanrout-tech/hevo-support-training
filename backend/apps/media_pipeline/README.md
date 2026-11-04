@@ -1,2 +1,3 @@
-Scaffolded in M3 — MediaAsset model, ffmpeg HLS transcode tasks, signed URL issuance.
-See docs/architecture.md §5 (MediaAsset), §10 (Video tracking design), §14 (M3 Video + quiz).
+Video uploads, the background conversion (ffmpeg via Celery), authorised range streaming and
+recovery. See [docs/media-pipeline.md](../../../docs/media-pipeline.md) for how it works, who can
+play what, the limits, and how to run the worker.

@@ -25,7 +25,7 @@ from typing import Any
 
 import jsonschema
 
-from . import quiz
+from . import bot_sim, manual_sim, quiz, video
 
 
 @dataclass(frozen=True)
@@ -61,6 +61,14 @@ class ActivityTypeDescriptor:
     check_complete: Callable[[Any], list[str]] | None = None
     # `Activity.max_attempts` for a newly added activity (0 = unlimited).
     default_max_attempts: int = 3
+    # Some types can only be finished when their config points at something
+    # real (a video that exists). Without it, they never block a lesson.
+    completable_config: Callable[[Any], bool] | None = None
+    # Who-may-do-what rules on a config (an uploaded video must be the author's
+    # own). Returns problems; only consulted when an author saves.
+    authorize_config: Callable[[Any, Any], list[str]] | None = None
+    # Worth knowing before publishing, but not blocking: (config, activity) -> sentences.
+    check_warnings: Callable[[Any, Any], list[str]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -107,32 +115,49 @@ ACTIVITY_TYPES: dict[str, ActivityTypeDescriptor] = {
         ActivityTypeDescriptor(
             key="video",
             label="Video",
-            description="Watch a video; completion is tracked.",
+            description="Watch a video in the lesson; completion is tracked.",
             icon="play",
             config_schema={
                 "type": "object",
                 "properties": {
-                    "video_asset_ref": {
+                    "source": {
                         "type": "string",
-                        "minLength": 1,
-                        "title": "Video reference",
+                        "enum": list(video.SOURCES),
+                        "title": "Video source",
                     },
+                    "media_asset": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "title": "Uploaded video",
+                    },
+                    "youtube_url": {"type": "string", "title": "YouTube link"},
+                    "drive_url": {"type": "string", "title": "Google Drive link"},
                     "completion_threshold": {
                         "type": "number",
-                        "minimum": 0,
+                        "minimum": video.MIN_THRESHOLD,
                         "maximum": 1,
-                        "title": "Watched fraction needed (0–1)",
+                        "title": "Share of the video that must be watched",
                     },
                     "max_credited_rate": {
                         "type": "number",
                         "minimum": 0.25,
+                        "maximum": video.MAX_RATE,
                         "title": "Fastest playback speed credited",
                     },
                 },
-                "required": ["video_asset_ref"],
                 "additionalProperties": True,
             },
-            default_config={"video_asset_ref": "", "completion_threshold": 0.9},
+            default_config={
+                "source": video.UPLOAD,
+                "completion_threshold": video.DEFAULT_THRESHOLD,
+                "max_credited_rate": video.DEFAULT_RATE,
+            },
+            # Finished by watching it, as measured and re-checked by the server.
+            completion="tracked",
+            learner_view=video.learner_view,
+            check_complete=video.check_complete,
+            completable_config=video.is_playable,
+            authorize_config=video.authorize_config,
         ),
         ActivityTypeDescriptor(
             key="pdf",
@@ -234,26 +259,148 @@ ACTIVITY_TYPES: dict[str, ActivityTypeDescriptor] = {
         ActivityTypeDescriptor(
             key="manual_sim",
             label="Simulation (mentor-rated)",
-            description="A realistic task a mentor rates against a rubric.",
+            description=(
+                "A realistic task a mentor rates against a rubric; "
+                "learners revise from the feedback."
+            ),
             icon="chat",
             config_schema={
                 "type": "object",
-                "properties": {"scenario": {"type": "string", "title": "Scenario for the learner"}},
+                "properties": {
+                    "scenario": {"type": "string", "title": "Scenario for the learner"},
+                    "handin": {"type": "string", "title": "What to hand in"},
+                    "criteria": {
+                        "type": "array",
+                        "maxItems": manual_sim.MAX_CRITERIA,
+                        "title": "Rubric criteria",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "key": {"type": "string"},
+                                "label": {"type": "string", "title": "Criterion"},
+                                "description": {"type": "string", "title": "What it looks at"},
+                                "guidance": {"type": "string", "title": "Guidance for raters"},
+                            },
+                        },
+                    },
+                    "pass_threshold": {
+                        "type": "number",
+                        "minimum": manual_sim.MIN_THRESHOLD,
+                        "maximum": manual_sim.MAX_THRESHOLD,
+                        "title": "Pass mark",
+                    },
+                    "min_each": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": manual_sim.MAX_SCORE,
+                        "title": "Lowest score allowed on any criterion",
+                    },
+                    "allow_files": {"type": "boolean", "title": "Allow screenshots and PDFs"},
+                    "due_days": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": manual_sim.MAX_DAYS,
+                        "title": "Days to hand in",
+                    },
+                    "revision_days": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": manual_sim.MAX_DAYS,
+                        "title": "Days to revise after feedback",
+                    },
+                    "review_hours": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": manual_sim.MAX_REVIEW_HOURS,
+                        "title": "Mentor review target (hours)",
+                    },
+                    "holds_next": {
+                        "type": "string",
+                        "enum": list(manual_sim.HOLDS_NEXT),
+                        "title": "What holds the next lesson",
+                    },
+                },
+                "required": ["scenario"],
                 "additionalProperties": True,
             },
-            default_config={},
+            default_config={
+                "scenario": "",
+                "handin": "",
+                "criteria": [],
+                "pass_threshold": manual_sim.DEFAULT_THRESHOLD,
+                "min_each": 0,
+                "allow_files": True,
+                "due_days": manual_sim.DEFAULT_DUE_DAYS,
+                "revision_days": manual_sim.DEFAULT_REVISION_DAYS,
+                "holds_next": manual_sim.DEFAULT_HOLDS_NEXT,
+            },
+            # Finished only by a mentor's rating passing it; a person judges, not code, so it
+            # has no `score`/`review` hooks and never appears in the quiz reports.
+            completion="external",
+            learner_view=manual_sim.learner_view,
+            check_complete=manual_sim.check_complete,
+            completable_config=manual_sim.is_ratable,
+            # Deadlines, not a count of tries, bound this work (see `apps/manual_sim`).
+            default_max_attempts=0,
         ),
         ActivityTypeDescriptor(
             key="bot_sim",
-            label="Chat simulation",
-            description="A simulated customer conversation, evaluated automatically.",
+            label="Practice ticket",
+            description="Reply to an AI customer in a ticket-style window and get scored.",
             icon="chat",
             config_schema={
                 "type": "object",
-                "properties": {"persona_key": {"type": "string", "title": "Customer persona"}},
+                "properties": {
+                    "persona": {
+                        "type": "string",
+                        "enum": list(bot_sim.PERSONAS),
+                        "title": "Customer type",
+                    },
+                    "topics": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": list(bot_sim.TOPIC_POOL)},
+                        "title": "Topics",
+                    },
+                    "pass_threshold": {
+                        "type": "number",
+                        "minimum": bot_sim.MIN_THRESHOLD,
+                        "maximum": bot_sim.MAX_THRESHOLD,
+                        "title": "Pass mark",
+                    },
+                    "max_exchanges": {
+                        "type": "integer",
+                        "minimum": bot_sim.MIN_EXCHANGES,
+                        "maximum": bot_sim.MAX_EXCHANGES,
+                        "title": "Replies allowed",
+                    },
+                    "required_tickets": {
+                        "type": "integer",
+                        "minimum": bot_sim.MIN_TICKETS,
+                        "maximum": bot_sim.MAX_TICKETS,
+                        "title": "Tickets to complete",
+                    },
+                    "require_average": {
+                        "type": "boolean",
+                        "title": "Also require the average to reach the pass mark",
+                    },
+                },
                 "additionalProperties": True,
             },
-            default_config={},
+            default_config={
+                "persona": "random",
+                "topics": [],
+                "pass_threshold": bot_sim.DEFAULT_THRESHOLD,
+                "max_exchanges": bot_sim.DEFAULT_EXCHANGES,
+                "required_tickets": bot_sim.DEFAULT_TICKETS,
+                "require_average": False,
+            },
+            # Finished only by finishing enough scored tickets, never by the learner.
+            completion="external",
+            learner_view=bot_sim.learner_view,
+            check_complete=bot_sim.check_complete,
+            completable_config=bot_sim.is_playable,
+            check_warnings=bot_sim.warnings,
+            default_max_attempts=3,
         ),
     ]
 }
@@ -267,10 +414,16 @@ def get_type(key: str) -> ActivityTypeDescriptor | None:
     return ACTIVITY_TYPES.get(key)
 
 
-def is_completable(key: str) -> bool:
-    """Can a learner finish this type today? (Gates lessons; see progress.)"""
+def is_completable(key: str, config: Any = None) -> bool:
+    """Can a learner finish this activity today? (Gates lessons; see progress.)
+    Pass the activity's `config` where there is one: a video with nothing to
+    watch behind it can't be finished, so it must not hold a lesson up."""
     descriptor = ACTIVITY_TYPES.get(key)
-    return descriptor is not None and descriptor.completion != "none"
+    if descriptor is None or descriptor.completion == "none":
+        return False
+    if descriptor.completable_config is not None and config is not None:
+        return descriptor.completable_config(config)
+    return True
 
 
 def learner_config(key: str, config: Any) -> dict[str, Any]:

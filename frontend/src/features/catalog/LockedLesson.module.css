@@ -1,0 +1,38 @@
+.locked {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: flex-start;
+  margin-top: var(--sp-8);
+  padding: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-radius: 50%;
+}
+
+.locked h2 {
+  font-size: var(--fs-18);
+}
+
+.locked p {
+  margin: var(--sp-2) 0 var(--sp-4);
+  color: var(--text-body);
+}
+
+@media (max-width: 599px) {
+  .locked {
+    flex-direction: column;
+    padding: var(--sp-4);
+  }
+}

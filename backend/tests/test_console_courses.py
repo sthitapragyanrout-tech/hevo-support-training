@@ -263,3 +263,12 @@ class TestArchive:
     def test_unknown_course_is_404(self, client, people, world):
         as_user(client, people["admin"])
         assert client.post(url("course-archive", 99999)).status_code == 404
+
+
+class TestLearningOrderShown:
+    def test_the_course_page_reports_how_learners_move_through_it(self, client, people, world):
+        as_user(client, people["admin"])
+        pk = world["live"]["course"].pk
+        assert client.get(url("course", pk)).json()["learning_order"] == "free"
+        CourseVersion.objects.filter(course_id=pk).update(learning_order="sequential")
+        assert client.get(url("course", pk)).json()["learning_order"] == "sequential"

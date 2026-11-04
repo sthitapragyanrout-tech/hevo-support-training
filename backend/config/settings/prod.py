@@ -9,3 +9,7 @@ from .base import *  # noqa: F401,F403
 DEBUG = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# The scripted model is for development and tests; it must never score real learners.
+if SIMBOT_LLM == "fake":  # noqa: F405
+    raise RuntimeError("SIMBOT_LLM=fake is not allowed in production.")

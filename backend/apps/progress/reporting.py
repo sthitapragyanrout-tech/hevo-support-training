@@ -16,10 +16,12 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Max, Q
 from django.db.models.functions import Lower
 
+from apps.activities import video
 from apps.activities.registry import ACTIVITY_TYPES, is_completable
 from apps.catalog.models import Activity, ContentNode, CourseVersion
 
-from .models import ActivityAttempt, ActivityProgress, LessonCompletion
+from . import watching
+from .models import ActivityAttempt, ActivityProgress, LessonCompletion, VideoWatch
 
 User = get_user_model()
 
@@ -92,16 +94,23 @@ def learners_queryset(search: str = "", course_id: int | None = None, ordering: 
     qs = qs.annotate(
         lessons_completed=Count(
             "lesson_completions",
-            filter=Q(lesson_completions__node__course_version__course_id=course_id)
-            if course_id is not None
-            else Q(),
+            filter=Q(lesson_completions__provisional=False)
+            & (
+                Q(lesson_completions__node__course_version__course_id=course_id)
+                if course_id is not None
+                else Q()
+            ),
             distinct=True,
         ),
+        # Quizzes only: a practice ticket is not a quiz, and has its own rows.
         quiz_attempts=Count(
             "activity_attempts",
-            filter=Q(activity_attempts__activity__content_node__course_version__course_id=course_id)
-            if course_id is not None
-            else Q(),
+            filter=Q(activity_attempts__activity__activity_type="mcq")
+            & (
+                Q(activity_attempts__activity__content_node__course_version__course_id=course_id)
+                if course_id is not None
+                else Q()
+            ),
             distinct=True,
         ),
     )
@@ -176,6 +185,84 @@ def attempt_rows(user, activity: Activity) -> list[dict[str, Any]]:
     ]
 
 
+def sim_rows(user) -> dict[int, dict[str, Any]]:
+    """A learner's practice tickets by activity: each session with its score, so a
+    trainer can see how it went and open the transcript."""
+    from apps.bot_sim.models import SimSession
+
+    out: dict[int, dict[str, Any]] = {}
+    for s in SimSession.objects.filter(user=user, preview=False).order_by("started_at", "id"):
+        entry = out.setdefault(s.activity_id, {"sessions": [], "best_raw": None})
+        result = s.result or {}
+        raw = (result.get("score") or {}).get("raw")
+        entry["sessions"].append(
+            {
+                "id": s.id,
+                "state": s.state,
+                "started_at": s.started_at.isoformat(),
+                "raw": raw,
+                "passed": result.get("passed"),
+                "needs_review": bool(result.get("needs_review")),
+                "reasons": result.get("review_reasons", []),
+                "repeated": s.repeated,
+                "abandon_reason": s.abandon_reason,
+                "skip_reason": s.skip_reason,
+            }
+        )
+        if raw is not None and (entry["best_raw"] is None or raw > entry["best_raw"]):
+            entry["best_raw"] = raw
+    for entry in out.values():
+        scored = [t["raw"] for t in entry["sessions"] if t["state"] == "finished" and t["raw"]]
+        entry["finished"] = len(scored)
+        entry["average_raw"] = round(sum(scored) / len(scored), 2) if scored else None
+        entry["skips"] = sum(1 for t in entry["sessions"] if t["abandon_reason"] == "skipped")
+    return out
+
+
+def rated_rows(user) -> dict[int, dict[str, Any]]:
+    """A learner's mentor-rated simulations by activity (trainer's view)."""
+    from apps.manual_sim import reporting as manual
+
+    return manual.for_trainer(user)
+
+
+def _sim_for(sims: dict[int, dict[str, Any]], activity: Activity) -> dict[str, Any] | None:
+    """The practice tickets of a learner for one activity, with the quota they are working to."""
+    if activity.activity_type != "bot_sim":
+        return None
+    from apps.activities import bot_sim as cfg
+
+    mine = sims.get(activity.id) or {
+        "sessions": [], "best_raw": None, "finished": 0, "average_raw": None, "skips": 0,
+    }  # fmt: skip
+    return {**mine, "required": cfg.required_tickets(activity.config)}
+
+
+def watch_row(watch: VideoWatch | None, activity: Activity) -> dict[str, Any] | None:
+    """How much of a video was watched, and anything a trainer should look at.
+    `None` for every other kind of activity."""
+    if activity.activity_type != "video":
+        return None
+    if video.is_self_reported(activity.config):
+        # Nothing to measure: the learner said so (the activity's state tells whether).
+        return {
+            "watched_fraction": None,
+            "needs_review": False,
+            "reasons": [],
+            "fidelity": "self_reported",
+        }
+    if watch is None:
+        return {"watched_fraction": 0.0, "needs_review": False, "reasons": [], "fidelity": None}
+    return {
+        "watched_fraction": (
+            round(min(watch.credited_seconds / watch.duration, 1.0), 4) if watch.duration else 0.0
+        ),
+        "needs_review": watch.needs_review,
+        "reasons": watching.review_text(watch.review_reasons),
+        "fidelity": watch.fidelity,
+    }
+
+
 def learner_detail(user) -> dict[str, Any]:
     """One learner: for each course they've touched, lessons done and every
     completable activity with its state and (for quizzes) every attempt."""
@@ -193,7 +280,15 @@ def learner_detail(user) -> dict[str, Any]:
     versions = CourseVersion.objects.filter(pk__in=version_ids).select_related(
         "root_node", "course"
     )
-    done_lessons = set(LessonCompletion.objects.filter(user=user).values_list("node_id", flat=True))
+    # A lesson awaiting a mentor's rating is not counted as done.
+    done_lessons = set(
+        LessonCompletion.objects.filter(user=user, provisional=False).values_list(
+            "node_id", flat=True
+        )
+    )
+    watches = {w.activity_id: w for w in VideoWatch.objects.filter(user=user)}
+    sims = sim_rows(user)
+    rated = rated_rows(user)
     courses = []
     for version in versions.order_by("course_id", "-version"):
         lessons_total = ContentNode.objects.filter(
@@ -208,7 +303,7 @@ def learner_detail(user) -> dict[str, Any]:
             .select_related("content_node__parent")
             .order_by("content_node__order", "order", "id")
         ):
-            if not is_completable(activity.activity_type):
+            if not is_completable(activity.activity_type, activity.config):
                 continue
             row = progress_by_activity.get(activity.id)
             scored = activity.activity_type in SCORED_TYPES
@@ -225,6 +320,11 @@ def learner_detail(user) -> dict[str, Any]:
                     "best_score": max((a["score"] for a in attempts), default=None),
                     "attempts": attempts,
                     "max_attempts": activity.max_attempts,
+                    "watch": watch_row(watches.get(activity.id), activity),
+                    "sim": _sim_for(sims, activity),
+                    "rated": rated.get(activity.id)
+                    if activity.activity_type == "manual_sim"
+                    else None,
                 }
             )
         courses.append(
@@ -339,7 +439,8 @@ def quiz_detail(activity: Activity) -> dict[str, Any]:
 
 
 def export_rows(course_id: int | None = None):
-    """One row per attempt, oldest first — the spreadsheet a manager asks for."""
+    """One row per attempt (quizzes, practice tickets, mentor ratings): the spreadsheet a manager
+    asks for."""
     attempts = ActivityAttempt.objects.select_related(
         "user",
         "activity__content_node__course_version__root_node",
@@ -351,6 +452,8 @@ def export_rows(course_id: int | None = None):
         attempts = attempts.filter(activity__content_node__course_version__course_id=course_id)
     for a in attempts.iterator():
         version = a.activity.content_node.course_version
+        kind = a.activity.activity_type
+        scored_out_of_five = kind in ("bot_sim", "manual_sim")
         yield [
             a.user.email,
             display_name(a.user),
@@ -359,7 +462,10 @@ def export_rows(course_id: int | None = None):
             version.version,
             a.activity.title,
             a.number,
-            round(a.score * 100),
+            # Practice tickets and mentor ratings are scored out of 5, never as a percent.
+            "" if scored_out_of_five else round(a.score * 100),
             "Passed" if a.passed else "Not passed",
             a.submitted_at.isoformat(),
+            {"bot_sim": "Practice ticket", "manual_sim": "Mentor-rated"}.get(kind, "Quiz"),
+            round(a.score * 5, 2) if scored_out_of_five else "",
         ]

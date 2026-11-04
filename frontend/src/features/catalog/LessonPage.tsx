@@ -9,6 +9,7 @@ import { LessonContent } from './LessonContent'
 import { extractOutline, type OutlineItem } from './lesson/outline'
 import { LessonOutline } from './lesson/LessonOutline'
 import styles from './LessonPage.module.css'
+import { LockedLesson } from './LockedLesson'
 import { ModuleMarker } from './ModuleMarker'
 import {
   formatMinutes,
@@ -78,7 +79,8 @@ export function LessonPage() {
     !node.description.trim() && sections.length === 0 && node.activities.length === 0
 
   const done = progress.completed.has(node.id)
-  const pending = pendingRequired(lesson, progress.activities)
+  const awaiting = progress.awaiting.has(node.id)
+  const pending = pendingRequired(lesson, progress.activities, progress.rated)
   const canRecord = progress.available && !preview
   const canComplete = canRecord && pending.length === 0
   const reason = preview
@@ -88,6 +90,46 @@ export function LessonPage() {
       : pending.length > 0
         ? `Finish the ${pending.length} required ${pending.length === 1 ? 'activity' : 'activities'} above first.`
         : null
+
+  const lock = done || awaiting ? null : progress.lockOf(node.id)
+  const blocker = lock ? lessons.find((l) => l.node.id === lock.blockedBy) : null
+  const nextLock = next && !progress.completed.has(next.node.id) ? progress.lockOf(next.node.id) : null
+
+  const crumbs = (
+    <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
+      <Link to={basePath} className={styles.course}>
+        {root.title}
+      </Link>
+      <Icon name="chevronRight" size={12} />
+      <span className={styles.module}>
+        <ModuleMarker number={lesson.moduleNumber} state="current" size="sm" />{' '}
+        <span>{module.node.title}</span>
+      </span>
+    </nav>
+  )
+
+  // A lesson that isn't open yet shows why instead of its content, and mounts
+  // nothing that could record progress.
+  if (lock) {
+    return (
+      <div className={styles.page}>
+        <article className={styles.lesson}>
+          {crumbs}
+          <header className={styles.header}>
+            <h1>{node.title}</h1>
+            <p className={styles.meta}>
+              <span>Locked</span>
+              <span>{node.is_required ? 'Required' : 'Optional'}</span>
+            </p>
+          </header>
+          <LockedLesson
+            basePath={basePath}
+            blockedBy={{ id: lock.blockedBy, title: blocker?.node.title ?? lock.title }}
+          />
+        </article>
+      </div>
+    )
+  }
 
   async function run(task: () => Promise<void>) {
     setBusy(true)
@@ -101,16 +143,7 @@ export function LessonPage() {
   return (
     <div className={styles.page}>
       <article className={styles.lesson}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-          <Link to={basePath} className={styles.course}>
-            {root.title}
-          </Link>
-          <Icon name="chevronRight" size={12} />
-          <span className={styles.module}>
-            <ModuleMarker number={lesson.moduleNumber} state="current" size="sm" />{' '}
-            <span>{module.node.title}</span>
-          </span>
-        </nav>
+        {crumbs}
 
         <header className={styles.header}>
           <h1>{node.title}</h1>
@@ -156,7 +189,11 @@ export function LessonPage() {
 
         <footer className={styles.footer}>
           <div className={styles.complete}>
-            {done ? (
+            {awaiting ? (
+              <p className={styles.hint}>
+                You can move on. This lesson is complete once your mentor passes your simulation.
+              </p>
+            ) : done ? (
               <>
                 <span className={styles.completed}>
                   <Icon name="check" size={16} strokeWidth={2.2} /> Lesson complete
@@ -194,11 +231,14 @@ export function LessonPage() {
             <Link to={`${basePath}/lessons/${next.node.id}`} className={styles.upNext}>
               <span className={styles.upNextLabel}>
                 Up next{startsNewModule && ` · Module ${String(next.moduleNumber).padStart(2, '0')}`}
+                {nextLock && ' · Locked'}
               </span>
               <span className={styles.upNextTitle}>{next.node.title}</span>
               <span className={styles.upNextSummary}>
-                {summarize(next.node.description, 170)}
-                {nextMinutes != null && (
+                {nextLock
+                  ? `Unlocks when you complete “${nextLock.title}”.`
+                  : summarize(next.node.description, 170)}
+                {!nextLock && nextMinutes != null && (
                   <span className={styles.upNextTime}> · {formatMinutes(nextMinutes)}</span>
                 )}
               </span>

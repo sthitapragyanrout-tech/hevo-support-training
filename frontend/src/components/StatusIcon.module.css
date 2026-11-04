@@ -17,6 +17,19 @@
   border-color: var(--accent);
 }
 
+/* Up next: a quiet accent ring with an arrow — a place to go, not an alarm. */
+.next {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Locked is a normal state, not an error: muted, never red. */
+.locked {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
 .dot {
   width: 6px;
   height: 6px;

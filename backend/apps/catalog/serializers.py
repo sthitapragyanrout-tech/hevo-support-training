@@ -31,7 +31,7 @@ class ActivitySummarySerializer(serializers.ModelSerializer):
         return learner_config(obj.activity_type, obj.config)
 
     def get_completable(self, obj: Activity) -> bool:
-        return is_completable(obj.activity_type)
+        return is_completable(obj.activity_type, obj.config)
 
 
 class AuthoringActivitySerializer(serializers.ModelSerializer):
@@ -57,7 +57,7 @@ class AuthoringActivitySerializer(serializers.ModelSerializer):
         ]
 
     def get_completable(self, obj: Activity) -> bool:
-        return is_completable(obj.activity_type)
+        return is_completable(obj.activity_type, obj.config)
 
     def get_needs_setup(self, obj: Activity) -> bool:
         return bool(validate_config(obj.activity_type, obj.config, strict=True))
@@ -124,5 +124,6 @@ def build_course_tree(course_version: CourseVersion, *, authoring: bool = False)
         "course_id": course_version.course_id,
         "version": course_version.version,
         "published_at": course_version.published_at,
+        "learning_order": course_version.learning_order,
         "root": root,
     }

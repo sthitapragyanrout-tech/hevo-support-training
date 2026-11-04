@@ -21,6 +21,12 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   plus: <path d="M8 3v10M3 8h10" />,
+  lock: (
+    <>
+      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+      <path d="M5.5 7V5.25a2.5 2.5 0 0 1 5 0V7" />
+    </>
+  ),
   trash: (
     <>
       <path d="M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.5 8.5h5l.5-8.5" />

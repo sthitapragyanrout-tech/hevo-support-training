@@ -169,7 +169,5 @@ class TestCsrfEnforcement:
         # rotated one the login response actually set.
         csrf_token = login_response.cookies["csrftoken"].value
 
-        response = strict_client.post(
-            reverse("accounts_api:logout"), HTTP_X_CSRFTOKEN=csrf_token
-        )
+        response = strict_client.post(reverse("accounts_api:logout"), HTTP_X_CSRFTOKEN=csrf_token)
         assert response.status_code == 204

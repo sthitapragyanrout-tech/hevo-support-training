@@ -1,5 +1,8 @@
 from django.urls import path
 
+from apps.bot_sim import console as practice
+from apps.manual_sim import console as ratings
+
 from . import audit_views, courses, results, roles, signins, users
 
 app_name = "console_api"
@@ -17,6 +20,72 @@ urlpatterns = [
     path("results/quizzes/", results.QuizListView.as_view(), name="quizzes"),
     path("results/quizzes/<int:activity_id>/", results.QuizDetailView.as_view(), name="quiz"),
     path("results/export/", results.ResultsExportView.as_view(), name="results-export"),
+    # Practice tickets: the scenario bank and transcripts
+    path("practice/options/", practice.OptionsView.as_view(), name="practice-options"),
+    path("practice/scenarios/", practice.ScenarioListView.as_view(), name="practice-scenarios"),
+    path(
+        "practice/scenarios/generate/",
+        practice.GenerateView.as_view(),
+        name="practice-generate",
+    ),
+    path(
+        "practice/scenarios/<int:pk>/",
+        practice.ScenarioDetailView.as_view(),
+        name="practice-scenario",
+    ),
+    path(
+        "practice/scenarios/<int:pk>/approve/",
+        practice.ApproveView.as_view(),
+        name="practice-approve",
+    ),
+    path(
+        "practice/scenarios/<int:pk>/retire/", practice.RetireView.as_view(), name="practice-retire"
+    ),
+    path(
+        "practice/scenarios/<int:pk>/restore/",
+        practice.RestoreView.as_view(),
+        name="practice-restore",
+    ),
+    path("practice/imports/", practice.ImportListView.as_view(), name="practice-imports"),
+    path("practice/imports/<int:pk>/", practice.ImportDetailView.as_view(), name="practice-import"),
+    path(
+        "practice/imports/<int:pk>/revert/",
+        practice.ImportRevertView.as_view(),
+        name="practice-import-revert",
+    ),
+    path("practice/settings/", practice.SettingsView.as_view(), name="practice-settings"),
+    path("practice/top-up/", practice.TopUpView.as_view(), name="practice-top-up"),
+    path(
+        "results/sessions/<int:session_id>/",
+        practice.TranscriptView.as_view(),
+        name="practice-session",
+    ),
+    # Mentor-rated simulations: the review queue and the trainer's actions on a case
+    path("ratings/queue/", ratings.QueueView.as_view(), name="ratings-queue"),
+    path("ratings/mentors/", ratings.MentorsView.as_view(), name="ratings-mentors"),
+    path("ratings/stats/", ratings.StatsView.as_view(), name="ratings-stats"),
+    path("ratings/submissions/<int:pk>/", ratings.ThreadView.as_view(), name="ratings-thread"),
+    path("ratings/submissions/<int:pk>/claim/", ratings.ClaimView.as_view(), name="ratings-claim"),
+    path(
+        "ratings/submissions/<int:pk>/release/",
+        ratings.ReleaseView.as_view(),
+        name="ratings-release",
+    ),
+    path(
+        "ratings/submissions/<int:pk>/reassign/",
+        ratings.ReassignView.as_view(),
+        name="ratings-reassign",
+    ),
+    path("ratings/submissions/<int:pk>/draft/", ratings.DraftView.as_view(), name="ratings-draft"),
+    path("ratings/submissions/<int:pk>/rate/", ratings.RateView.as_view(), name="ratings-rate"),
+    path(
+        "ratings/cases/<int:case_id>/extend/", ratings.ExtendView.as_view(), name="ratings-extend"
+    ),
+    path("ratings/cases/<int:case_id>/waive/", ratings.WaiveView.as_view(), name="ratings-waive"),
+    path("ratings/cases/<int:case_id>/close/", ratings.CloseView.as_view(), name="ratings-close"),
+    path(
+        "ratings/cases/<int:case_id>/reopen/", ratings.ReopenView.as_view(), name="ratings-reopen"
+    ),
     # Courses back-office
     path("courses/", courses.CourseListView.as_view(), name="courses"),
     path("courses/<int:course_id>/", courses.CourseDetailView.as_view(), name="course"),

@@ -7,8 +7,8 @@ import type { CourseContext } from './courseContext'
 import { LessonItem } from './LessonItem'
 import { ModuleSection } from './ModuleSection'
 import styles from './CourseSidebar.module.css'
-import { moduleComplete, searchLessons, type Lesson } from './treeUtils'
-import { hasStarted } from './useProgress'
+import { lessonStatus, moduleMarker, unlockHint } from './lessonState'
+import { searchLessons, type Lesson } from './treeUtils'
 
 interface Props {
   course: CourseContext
@@ -29,10 +29,8 @@ export function CourseSidebar({ course, activeLessonId, onNavigate }: Props) {
 
   // Completed wins over current: a finished lesson you're re-reading keeps its
   // tick; "where you are" is carried by the tint, bar and aria-current.
-  function statusOf(lesson: Lesson): LessonStatus {
-    if (progress.completed.has(lesson.node.id)) return 'completed'
-    return lesson.node.id === activeLessonId ? 'current' : 'not_started'
-  }
+  const statusOf = (lesson: Lesson): LessonStatus => lessonStatus(lesson, progress, activeLessonId)
+  const lockedHintOf = (lesson: Lesson) => unlockHint(lesson, progress)
 
   function toggleFilter() {
     if (filtering) {
@@ -97,6 +95,7 @@ export function CourseSidebar({ course, activeLessonId, onNavigate }: Props) {
                   status={statusOf(lesson)}
                   current={lesson.node.id === activeLessonId}
                   variant="compact"
+                  lockedHint={lockedHintOf(lesson)}
                   onNavigate={onNavigate}
                 />
               </li>
@@ -112,13 +111,8 @@ export function CourseSidebar({ course, activeLessonId, onNavigate }: Props) {
             lessons={module.lessons}
             statusOf={statusOf}
             currentId={activeLessonId}
-            markerState={
-              hasStarted(progress) && moduleComplete(module, progress.completed)
-                ? 'complete'
-                : module.node.id === activeModuleId
-                  ? 'current'
-                  : 'default'
-            }
+            lockedHintOf={lockedHintOf}
+            markerState={moduleMarker(module, progress, activeModuleId)}
             variant="compact"
             open={toggled[module.node.id] ?? module.node.id === activeModuleId}
             onToggle={() =>

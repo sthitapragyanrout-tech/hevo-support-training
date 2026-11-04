@@ -19,6 +19,16 @@ class TestAdminChangelistsAndAddViewsLoad:
             "admin:accounts_role_add",
             "admin:accounts_roleassignment_changelist",
             "admin:accounts_roleassignment_add",
+            "admin:media_pipeline_mediaasset_changelist",
+            "admin:progress_videowatch_changelist",
+            "admin:bot_sim_scenario_changelist",
+            "admin:bot_sim_simsession_changelist",
+            "admin:bot_sim_llmcall_changelist",
+            "admin:manual_sim_simsubmission_changelist",
+            "admin:manual_sim_simcase_changelist",
+            "admin:manual_sim_mentorassignment_changelist",
+            "admin:manual_sim_rubricscore_changelist",
+            "admin:manual_sim_submissionfile_changelist",
         ],
     )
     def test_returns_200(self, admin_client, url_name):
@@ -37,7 +47,13 @@ class TestFullCourseTreeAuthoringFlow:
         add_cv_url = reverse("admin:catalog_courseversion_add")
         course = Course.objects.create(slug="admin-flow-course")
         response = admin_client.post(
-            add_cv_url, {"course": course.id, "version": 1, "state": CourseVersion.State.DRAFT}
+            add_cv_url,
+            {
+                "course": course.id,
+                "version": 1,
+                "state": CourseVersion.State.DRAFT,
+                "learning_order": CourseVersion.LearningOrder.FREE,
+            },
         )
         assert response.status_code == 302
         cv = CourseVersion.objects.get(version=1)

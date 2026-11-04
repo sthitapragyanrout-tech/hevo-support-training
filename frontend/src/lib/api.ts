@@ -29,7 +29,7 @@ export class ApiError extends Error {
   }
 }
 
-function getCookie(name: string): string | null {
+export function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
   return match ? decodeURIComponent(match[1]) : null
 }
@@ -127,6 +127,7 @@ export interface CourseTree {
   course_id: number
   version: number
   published_at: string | null
+  learning_order?: 'free' | 'sequential'
   root: TreeNode | null
 }
 
@@ -164,10 +165,83 @@ export interface AttemptSummary {
 
 export interface CourseProgressPayload {
   completed_lessons: number[]
+  /** Lessons the learner has moved past on the strength of work handed in for a mentor's
+   * rating: open for what follows, but not complete until it passes. */
+  awaiting_review_lessons?: number[]
   activities: Record<string, ActivityState>
   attempts: Record<string, AttemptSummary>
   /** Whether this server lets a learner wipe their own quiz attempts (testing). */
   can_reset_attempts: boolean
+  /** `sequential`: lessons unlock in order. `free`: everything is open. */
+  learning_order?: 'free' | 'sequential'
+  /** Locked lessons only: what to finish first. */
+  locked?: Record<string, { blocked_by: number; blocked_by_title: string }>
+  /** The first open, unfinished lesson (required ones first). */
+  next_lesson_id?: number | null
+  /** Videos the learner has started: how much of each they've verifiably watched. */
+  watch?: Record<string, WatchSummary>
+  /** Practice tickets the learner has opened: the one in progress and the last finished. */
+  sim?: Record<string, SimSummary>
+  /** Mentor-rated simulations the learner has opened: where their work stands. */
+  rated?: Record<string, RatedSummary>
+}
+
+export type RatedStatus =
+  | 'not_opened'
+  | 'not_submitted'
+  | 'waiting'
+  | 'changes_requested'
+  | 'passed'
+  | 'waived'
+  | 'not_passed'
+
+export interface RatedSummary {
+  status: RatedStatus
+  revisions: number
+  due_at: string | null
+  overdue: boolean
+  /** The latest rating, out of 5 (never a percentage). */
+  last_score: number | null
+  /** What the next lesson waits for: handing the work in, or a passing rating. */
+  holds_next: 'submit' | 'pass'
+}
+
+export interface SimSummary {
+  live: { id: number; state: 'open' | 'finishing' } | null
+  last_finished: number | null
+  /** Questions the learner has passed on. */
+  skips_used: number
+  /** Their average over finished tickets, scaled 0–1 (×5 for "out of 5"). */
+  average: number | null
+}
+
+export interface WatchSummary {
+  watched_fraction: number
+  position: number
+}
+
+/** One heartbeat from the player: what it played since the last one. The
+ * server decides what counts and whether the video is finished. */
+export interface WatchBody {
+  session_id: string
+  seq: number
+  /** Stretches of the video played at a credited speed, in seconds, sorted and disjoint. */
+  ranges: [number, number][]
+  position: number
+  rate: number
+  hidden_seconds: number
+  /** Only for embedded players, whose length the server can't know. */
+  duration?: number
+}
+
+export interface WatchReply {
+  state: ActivityState | null
+  completed: boolean
+  watched_fraction: number
+  needed_fraction: number
+  position: number
+  duration: number | null
+  accepted_seconds: number
 }
 
 /** Per-question feedback. The key and explanation arrive only once the quiz
@@ -229,8 +303,208 @@ export const progressApi = {
   attempts: (id: number) => request<AttemptReport>(progress(`activities/${id}/attempts/`)),
   resetAttempts: (id: number) =>
     request<void>(progress(`activities/${id}/attempts/`), { method: 'DELETE' }),
+  watchState: (id: number) => request<WatchReply>(progress(`activities/${id}/watch/`)),
+  /** `keepalive` lets the last heartbeat survive the page closing. */
+  watch: (id: number, body: WatchBody, keepalive = false) =>
+    request<WatchReply>(progress(`activities/${id}/watch/`), {
+      method: 'POST',
+      body: JSON.stringify(body),
+      keepalive,
+    }),
   completeLesson: (id: number) =>
     request<{ completed: boolean }>(progress(`lessons/${id}/complete/`), { method: 'POST' }),
   uncompleteLesson: (id: number) =>
     request<void>(progress(`lessons/${id}/complete/`), { method: 'DELETE' }),
+}
+
+
+// ------------------------------------------------------------ practice tickets
+
+export interface SimThreadItem {
+  seq: number
+  role: 'customer' | 'intern'
+  text: string
+  at: string
+  kind: 'message' | 'nudge' | 'close'
+  /** Replies only: `sending` until the customer has answered. */
+  status?: 'sending' | 'sent' | 'failed'
+  error?: string
+}
+
+export interface SimMetric {
+  key: string
+  label: string
+  raw: number
+  max: number
+  feedback: string
+  /** What the number rests on: only some metrics are checked, others are an AI's opinion. */
+  basis: 'model_judgment' | 'deterministic' | 'link_check' | 'link_check+model_relevance' | 'grounded'
+}
+
+export interface SimResult {
+  score: { raw: number; max: number; scaled: number }
+  pass_mark: { raw: number; scaled: number }
+  passed: boolean
+  metrics: SimMetric[]
+  narrative: { strengths: string; weaknesses: string; overall: string } | null
+  grounded: boolean
+  exchanges: number
+  avg_tat_seconds: number
+  attempts_left?: number | null
+  attempt?: number
+  preview?: boolean
+  /** `completed` once the quota is met. */
+  state?: string
+  /** How many scored tickets are done, out of how many are needed to complete. */
+  quota?: { done: number; required: number }
+}
+
+/** What a trainer's transcript adds. The server never sends these to a learner. */
+export interface TrainerSimResult extends SimResult {
+  needs_review?: boolean
+  review_reasons?: string[]
+  scenario_ref?: { topic: string; persona_type: string; issue_summary: string }
+}
+
+export interface SimSession {
+  id: number
+  activity_id: number
+  state: 'open' | 'finishing' | 'finished' | 'abandoned'
+  preview: boolean
+  subject: string
+  thread: SimThreadItem[]
+  can_reply: boolean
+  waiting_for_customer: boolean
+  failed: boolean
+  failed_message: string
+  exchanges: number
+  max_exchanges: number
+  started_at: string
+  customer_waiting_since: string | null
+  feedback_pending: boolean
+  abandoned_reason: string
+  result: SimResult | null
+}
+
+const sim = (path: string) => `/api/v1/sim/${path}`
+const post = (body?: unknown): RequestInit => ({
+  method: 'POST',
+  body: body === undefined ? undefined : JSON.stringify(body),
+})
+
+export type SkipReason = 'duplicate' | 'unclear' | 'not_relevant'
+
+export const simApi = {
+  start: (activityId: number) => request<SimSession>(sim(`activities/${activityId}/sessions/`), post()),
+  preview: (activityId: number) => request<SimSession>(sim(`activities/${activityId}/preview/`), post()),
+  get: (id: number) => request<SimSession>(sim(`sessions/${id}/`)),
+  send: (id: number, text: string, clientId: string) =>
+    request<SimSession>(sim(`sessions/${id}/messages/`), post({ text, client_id: clientId })),
+  retry: (id: number) => request<SimSession>(sim(`sessions/${id}/retry/`), post()),
+  finish: (id: number) => request<SimSession>(sim(`sessions/${id}/finish/`), post()),
+  skip: (id: number, reason: SkipReason) =>
+    request<SimSession>(sim(`sessions/${id}/skip/`), post({ reason })),
+  scenarioCount: (persona: string, topics: string[]) =>
+    request<{ count: number }>(
+      sim(`scenario-count/?persona=${encodeURIComponent(persona)}&topics=${encodeURIComponent(topics.join(','))}`),
+    ),
+}
+
+
+// ----------------------------------------------------------- mentor-rated simulations
+
+export interface RatedFile {
+  id: string
+  name: string
+  type: string
+  size_bytes: number
+  url: string
+  inline: boolean
+}
+
+export interface RatedScore {
+  key: string
+  label: string
+  score: number
+  max: number
+  feedback: string
+}
+
+export interface RatedRating {
+  raw_score: number
+  passed: boolean
+  comment: string
+  rated_at: string | null
+  mentor: string | null
+  scores: RatedScore[]
+}
+
+export interface RatedRevision {
+  id: number
+  revision: number
+  state: 'submitted' | 'rated' | 'withdrawn'
+  submitted_at: string
+  late: boolean
+  answer: string
+  links: string[]
+  files: RatedFile[]
+  /** When a mentor is expected to have reviewed it (only while it waits). */
+  expected_by: string | null
+  rating: RatedRating | null
+}
+
+export interface RatedCriterion {
+  key: string
+  label: string
+  description: string
+}
+
+export interface RatedView {
+  activity: { id: number; title: string }
+  config: {
+    scenario: string
+    handin: string
+    criteria: RatedCriterion[]
+    pass_rule: string
+    min_each: number
+    allow_files: boolean
+    due_days: number
+    revision_days: number
+    review_hours: number
+  }
+  limits: {
+    max_files: number
+    max_file_mb: number
+    max_total_mb: number
+    types: string[]
+    allowed: boolean
+    max_answer_chars: number
+    max_links: number
+  }
+  case: {
+    status: RatedStatus
+    due_at: string | null
+    due_basis: 'initial' | 'revision' | 'extended' | null
+    overdue: boolean
+    revisions: number
+    can_submit: boolean
+    can_withdraw: boolean
+    closed_at: string | null
+  }
+  revisions: RatedRevision[]
+}
+
+const rated = (path: string) => `/api/v1/rated-sims/${path}`
+
+export const ratedApi = {
+  get: (activityId: number) => request<RatedView>(rated(`activities/${activityId}/`)),
+  open: (activityId: number) => request<RatedView>(rated(`activities/${activityId}/open/`), post()),
+  /** Multipart: the answer, links and files go in one request, so nothing is half-saved. */
+  submit: (activityId: number, form: FormData) =>
+    request<RatedView>(rated(`activities/${activityId}/submissions/`), {
+      method: 'POST',
+      body: form,
+    }),
+  withdraw: (submissionId: number) =>
+    request<RatedView>(rated(`submissions/${submissionId}/withdraw/`), post()),
 }

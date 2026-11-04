@@ -16,6 +16,9 @@ dependencies = [
     "redis>=5.0",
     "celery>=5.4",
     "openpyxl>=3.1.5",
+    "openai>=3.37.0",
+    "gunicorn>=22",
+    "pillow>=13.0.0",
 ]
 
 [dependency-groups]
@@ -42,6 +45,15 @@ select = ["E", "F", "I", "UP", "B"]
 # Data-literal-heavy placeholder seed tree — wrapping every dict would hurt
 # readability more than it helps; the schema-shape is what matters here.
 "apps/catalog/management/commands/seed_placeholder_course.py" = ["E501"]
+# Prompts and topic text are prose; wrapping them would hurt readability.
+"simbot_engine/*.py" = ["E501"]
+"tests/engine/*.py" = ["E501"]
+"tests/test_sim_*.py" = ["E501"]
+"tests/test_zendesk_*.py" = ["E501"]
+"tests/load/*.py" = ["E501"]
+"tests/sim_helpers.py" = ["E501"]
+"scripts/*.py" = ["E501"]
+"apps/bot_sim/seed_data.py" = ["E501"]
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
@@ -55,3 +67,7 @@ django_settings_module = "config.settings.dev"
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
 testpaths = ["tests"]
+markers = [
+    "worker: starts a real Celery worker process (needs Postgres and ffmpeg)",
+    "load: the 13-session load test; real processes, takes minutes (run with -m load)",
+]

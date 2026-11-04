@@ -43,6 +43,8 @@ interface Options {
   quizMaxAttempts?: number
   /** Let the learner reset their own quiz attempts (the dev-only switch). */
   canReset?: boolean
+  /** `sequential`: lesson 7 (Failures) is locked until lesson 3 (Pipelines) is complete. */
+  learningOrder?: 'free' | 'sequential'
 }
 
 const USER = {
@@ -66,6 +68,15 @@ export function mockLearnerApi(options: Options = {}) {
   const key = options.quizKey ?? DEFAULT_KEY
   const limit = options.quizMaxAttempts ?? 3
   const tree = courseFor(options)
+  const order = options.learningOrder ?? 'free'
+  // The sample course has two lessons, 3 then 7, both required.
+  const lockOf = (lessonId: number) =>
+    order === 'sequential' && lessonId === 7 && !completed.has(3) && !completed.has(7)
+      ? { blocked_by: 3, blocked_by_title: 'Pipelines' }
+      : null
+  const nextLesson = () => [3, 7].find((id) => !completed.has(id) && !lockOf(id)) ?? null
+  const lockedReply = () =>
+    ({ status: 409, body: { detail: 'Finish “Pipelines” first.', blocked_by: 3 } }) as const
 
   vi.stubGlobal(
     'fetch',
@@ -101,7 +112,14 @@ export function mockLearnerApi(options: Options = {}) {
       if (path === '/api/v1/catalog/courses/1/') {
         return options.courseStatus && options.courseStatus !== 200
           ? reply(options.courseStatus, { detail: 'Not found.' })
-          : reply(200, { id: 1, course_id: 1, version: 1, published_at: null, root: tree })
+          : reply(200, {
+              id: 1,
+              course_id: 1,
+              version: 1,
+              published_at: null,
+              learning_order: order,
+              root: tree,
+            })
       }
       if (path === '/api/v1/progress/courses/1/') {
         const summary = attempts.length
@@ -119,6 +137,9 @@ export function mockLearnerApi(options: Options = {}) {
           activities,
           attempts: summary,
           can_reset_attempts: options.canReset ?? false,
+          learning_order: order,
+          locked: lockOf(7) ? { 7: lockOf(7) } : {},
+          next_lesson_id: nextLesson(),
         })
       }
 
@@ -233,6 +254,11 @@ export function mockLearnerApi(options: Options = {}) {
             ? [QUIZ_ID]
             : []),
         ]
+        const lock = lockOf(id)
+        if (lock && method === 'POST') {
+          const { status, body } = lockedReply()
+          return reply(status, body)
+        }
         if (id === 3 && pending.length) {
           return reply(409, {
             detail: `Finish the ${pending.length} required ${pending.length === 1 ? 'activity' : 'activities'} in this lesson first.`,

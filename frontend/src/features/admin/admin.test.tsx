@@ -134,6 +134,43 @@ describe('Console entry', () => {
   })
 })
 
+describe('Dashboard (a placeholder for now)', () => {
+  it('is the first item under Results for someone who may see results', async () => {
+    mockApi([VIEW], {})
+    renderAt('/admin/results/dashboard')
+    const rail = await screen.findByRole('navigation', { name: 'Admin sections' })
+    const items = within(rail).getAllByRole('link').map((a) => a.textContent)
+    expect(items.slice(0, 3)).toEqual(['Dashboard', 'Learners', 'Quizzes'])
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+  })
+
+  it('says plainly that it is not built, shows no numbers, and points to where results are', async () => {
+    mockApi([VIEW], {})
+    renderAt('/admin/results/dashboard')
+    expect(await screen.findByText('Not built yet.')).toBeInTheDocument()
+    const content = screen.getByText('Not built yet.').closest('p')?.parentElement as HTMLElement
+    expect(content.textContent).not.toMatch(/\d/) // nothing that could be mistaken for a result
+    expect(within(content).getByRole('link', { name: 'Learners' })).toHaveAttribute('href', '/admin/results/learners')
+    expect(within(content).getByRole('link', { name: 'Quizzes' })).toHaveAttribute('href', '/admin/results/quizzes')
+  })
+
+  it('is not in the rail, and cannot be opened, without the right to see results', async () => {
+    mockApi([AUDIT], { 'GET /api/v1/admin/audit/': page([]), 'GET /api/v1/admin/audit/actions/': { results: [] } })
+    renderAt('/admin/results/dashboard')
+    expect(await screen.findByText('You don’t have access to this area')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+  })
+
+  it('leaves the Admin landing page where it was: Learners', async () => {
+    mockApi([VIEW], {
+      'GET /api/v1/admin/results/learners/': page(LEARNERS),
+      'GET /api/v1/admin/results/courses/': COURSES,
+    })
+    renderAt('/admin')
+    expect(await screen.findByRole('heading', { name: 'Learners' })).toBeInTheDocument()
+  })
+})
+
 describe('Learners', () => {
   const routes = (handler?: Handler) => ({
     'GET /api/v1/admin/results/courses/': COURSES,
@@ -245,6 +282,82 @@ describe('Learner detail', () => {
     expect(within(attempts).getAllByRole('listitem')).toHaveLength(2)
     expect(attempts).toHaveTextContent('0%')
     expect(attempts).toHaveTextContent('50%')
+  })
+
+  it('shows how much of a video was watched, and why it deserves a look', async () => {
+    const withVideo = structuredClone(DETAIL)
+    withVideo.courses[0].activities.push({
+      id: 7,
+      title: 'Ingestion walkthrough',
+      type: 'video',
+      lesson: 'Pipelines',
+      required: true,
+      state: 'started',
+      scored: false,
+      best_score: null,
+      attempts: [],
+      max_attempts: 3,
+      watch: {
+        watched_fraction: 0.5,
+        needs_review: true,
+        reasons: ['Reported more watching than real time allows', 'Played in several tabs or devices at once'],
+        fidelity: 'verified',
+      },
+    } as never)
+    mockApi([VIEW], { 'GET /api/v1/admin/results/learners/11/': { body: withVideo } })
+    renderAt('/admin/results/learners/11')
+    const row = (await screen.findByText('Ingestion walkthrough')).closest('li') as HTMLElement
+    expect(row).toHaveTextContent('Video')
+    expect(row).toHaveTextContent('Watched 50%')
+    expect(row).toHaveTextContent(
+      'Worth a look: reported more watching than real time allows; played in several tabs or devices at once',
+    )
+    expect(within(row).queryByRole('button', { name: 'Reset attempts' })).not.toBeInTheDocument()
+  })
+
+  it('shows a Google Drive video as confirmed by the learner, with no percentage', async () => {
+    const drive = structuredClone(DETAIL)
+    drive.courses[0].activities.push({
+      id: 7,
+      title: 'Drive walkthrough',
+      type: 'video',
+      lesson: 'Pipelines',
+      required: true,
+      state: 'completed',
+      scored: false,
+      best_score: null,
+      attempts: [],
+      max_attempts: 3,
+      watch: { watched_fraction: null, needs_review: false, reasons: [], fidelity: 'self_reported' },
+    } as never)
+    mockApi([VIEW], { 'GET /api/v1/admin/results/learners/11/': { body: drive } })
+    renderAt('/admin/results/learners/11')
+    const row = (await screen.findByText('Drive walkthrough')).closest('li') as HTMLElement
+    expect(row).toHaveTextContent('Confirmed by the learner')
+    expect(row).not.toHaveTextContent('%')
+  })
+
+  it('does not flag a clean video', async () => {
+    const clean = structuredClone(DETAIL)
+    clean.courses[0].activities.push({
+      id: 7,
+      title: 'Walkthrough',
+      type: 'video',
+      lesson: 'Pipelines',
+      required: true,
+      state: 'completed',
+      scored: false,
+      best_score: null,
+      attempts: [],
+      max_attempts: 3,
+      watch: { watched_fraction: 1, needs_review: false, reasons: [], fidelity: 'verified' },
+    } as never)
+    mockApi([VIEW], { 'GET /api/v1/admin/results/learners/11/': { body: clean } })
+    renderAt('/admin/results/learners/11')
+    const row = (await screen.findByText('Walkthrough')).closest('li') as HTMLElement
+    expect(row).toHaveTextContent('Watched 100%')
+    expect(row).toHaveTextContent('Watched') // the status chip
+    expect(row).not.toHaveTextContent('Worth a look')
   })
 
   it('does not offer a reset to someone who may only view', async () => {

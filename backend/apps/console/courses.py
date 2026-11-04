@@ -91,6 +91,14 @@ class CourseListView(ConsoleView):
         return Response({"results": page, **meta})
 
 
+def _learning_order(course: Course) -> str:
+    """The order learners go in, as the live (else newest) version sets it."""
+    versions = sorted(course.versions.all(), key=lambda v: -v.version)
+    live = next((v for v in versions if v.state == CourseVersion.State.PUBLISHED), None)
+    chosen = live or (versions[0] if versions else None)
+    return chosen.learning_order if chosen else CourseVersion.LearningOrder.FREE
+
+
 def _version_rows(course: Course) -> list[dict[str, Any]]:
     versions = sorted(course.versions.all(), key=lambda v: -v.version)
     ids = [v.pk for v in versions]
@@ -141,14 +149,10 @@ class CourseDetailView(ConsoleView):
             {
                 **course_row(course),
                 "versions_history": _version_rows(course),
-                "can_archive": request.user.is_superuser or bool(self._can(request, PUBLISH)),
+                "can_archive": can(request.user, PUBLISH),
+                "learning_order": _learning_order(course),
             }
         )
-
-    @staticmethod
-    def _can(request: Request, action: str) -> bool:
-
-        return can(request.user, action)
 
 
 class _ArchiveBase(ConsoleView):

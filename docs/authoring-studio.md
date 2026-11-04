@@ -77,11 +77,32 @@ open draft. The spreadsheet is never the source of truth.
 `courses/{id}/preview/` · `courses/{id}/nodes/` · `courses/{id}/publish-checklist/` ·
 `courses/{id}/submit|publish|return-to-draft/` · `courses/{id}/import/preview|commit/` ·
 `nodes/{id}/` · `nodes/{id}/impact/` · `nodes/{id}/order/` · `nodes/{id}/activities/` ·
-`nodes/{id}/activities/order/` · `activities/{id}/`.
+`nodes/{id}/activities/order/` · `activities/{id}/` · `media/` (upload) · `media/limits/` ·
+`media/{id}/` (processing status) · `media/{id}/retry/`.
 
 Learner endpoints (`/api/v1/catalog/*`) are unchanged apart from an additive `course_id`;
 they only ever serve published versions and expose only each activity type's learner-safe
 `config` (a reading's link; a quiz's questions and choices — never its answers).
+
+## Learning order
+
+Each course has a **learning order**, set in Studio → Settings while the course is a draft:
+
+- **Learners can open any lesson** (default): nothing is locked.
+- **Learners go in order**: a lesson opens once every *required* lesson before it is complete.
+  Optional lessons never hold anyone up. A quiz counts as finished when it's passed **or** its
+  attempts are used up, so a failed quiz slows a learner down but never traps them. A lesson
+  that's already complete is never locked.
+
+Learners see locked lessons muted in the sidebar and course page ("Unlocks when you complete …"),
+the next lesson marked "Up next", and a calm "not open yet" screen if they follow a link to a
+locked lesson. The server refuses to record anything against a locked lesson. The preview shows
+everything open and notes that the course is set to go in order. The order is part of the
+version, so a published course keeps the order it was published with, and a new draft starts
+from the live one.
+
+Limit: locked lessons' text is still in the course payload (the lock is about sequence, not
+secrecy).
 
 ## Quizzes
 
@@ -109,7 +130,34 @@ Re-testing: with `ALLOW_ATTEMPT_RESET` on (dev settings turn it on; it is off by
 a signed-in user sees "Reset attempts" on a quiz they have tried, which deletes their own
 attempts and reopens the lesson. Production leaves it off until trainers get a proper screen.
 
+## Videos
+
+A **Video** activity plays inside the lesson — never as a link out. In Studio, choose a source:
+
+- **Upload a video** (MP4, MOV, M4V, WebM or MKV; the limits are shown in the editor — by default
+  1 GB and 2 hours). You see real upload progress, then "Processing…" while a background worker
+  converts it for the web (you can leave the page), then "Ready · 8:24" with a preview you can
+  play. A failed conversion says why, in words, and offers **Try again** when trying again can
+  help. You can only use videos you uploaded yourself (administrators may use any).
+- **YouTube link** (`youtube.com` or `youtu.be`): played in YouTube's own player inside the lesson.
+- **Google Drive link** (`drive.google.com`, a file's share link): played in Drive's own preview
+  inside the lesson. Set the file's sharing to "Anyone with the link", or learners are asked to
+  request access. Google gives no playback position for Drive, so **watching can't be measured**:
+  the learner presses "I've watched this" (like a reading) and trainers see it as *Confirmed by the
+  learner*. For watching that is checked, upload the video.
+
+Under **How watching is counted** you set the share of the video that must be watched (default 90%,
+50–100) and the fastest playback speed that counts (default 1×). Skipping ahead earns nothing;
+the server decides when a video is finished. A draft with a video still processing can't be
+published until it shows as ready. In **Preview**, videos play but nothing is recorded.
+
+Processing needs the worker: `make dev-worker` locally (see [media-pipeline.md](media-pipeline.md)).
+Without it an upload simply stays on "Processing…".
+
 ## Known limits
+
+- Videos: no captions or subtitles, no Vimeo/Loom embeds, no adaptive streaming, and
+  watching is verified but can't prove attention (see media-pipeline.md).
 
 - Every trainer can edit every course (the `_scope_check` seam in `accounts/rbac.py` is ready for per-course ownership).
 - Last write wins; reorder sends the full id list. No collaborative editing.
@@ -117,3 +165,40 @@ attempts and reopens the lesson. Production leaves it off until trainers get a p
 - Quizzes: single and multiple choice only — no shuffling, short answer, ordering, question banks or partial credit.
 - Trainers can't reset or view a learner's quiz scores yet (Django Admin → Activity attempts shows them; delete the attempts and the learner's progress row to reset).
 - Submitting has no notification yet — admins see a "waiting to be published" queue in the Studio.
+
+## Practice tickets
+
+A **Practice ticket** activity puts the learner in a ticket window with an AI customer. It is
+**practice, not a test**: finishing enough scored tickets completes it (see [simbot.md](simbot.md)).
+In Studio you choose:
+
+- **Customer type** — a mix (random), or one of urgent / technical / non-technical / terse.
+- **Topics** — tick the ones to allow; none ticked means any.
+- **Tickets to complete** — how many finished, scored tickets complete it (default **5**, 1–20).
+- **Pass mark (out of 5)** — default 3.5 (stored as 0.7). It's feedback on each ticket
+  ("above / below the pass mark"); it doesn't decide completion. Scores are always shown "x / 5",
+  never as a percentage.
+- **Replies allowed** (3–6) per ticket, and **Most tickets allowed** (0 = no limit; can't be below
+  the tickets to complete).
+- **Also require the average of the last N to reach the pass mark** — off by default.
+
+The editor says live how many **approved scenarios** match. A practice ticket **can't be published
+with fewer scenarios than the tickets to complete** (a learner could never finish), and warns when
+a learner who skips a lot could run out. Learners may skip a question before replying (5 per
+activity by default). Scenarios come from past customer queries (read-only import from Zendesk, with
+strict automatic checks), from the AI, or by hand — see the Console's **Practice scenarios**.
+**Preview** plays the ticket against any scenario — drafts included — and records nothing.
+
+Tickets need the practice worker and a model key: `make dev-workers` and `OPENAI_API_KEY`. Without a
+worker a reply simply waits.
+
+## Mentor-rated simulations
+
+A **Simulation (mentor-rated)** activity asks the learner to do a realistic task and hand work in; a
+mentor rates it against the rubric you write. In the activity's editor you set the scenario, what to
+hand in, the **rubric** (up to 8 criteria; each has a label, "what it looks at" — shown to learners —
+and **guidance for raters** — never shown to learners), the pass mark (out of 5), an optional lowest
+score per criterion, the days to hand in and to revise (0 = no deadline), a review target, and whether
+attachments are allowed. It can't be published until it has a scenario, a labelled criterion, and
+someone who can rate (Admin → Roles). Preview shows the task and rubric and records nothing. See
+[manual-simulation.md](manual-simulation.md).

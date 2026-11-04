@@ -457,3 +457,51 @@ class TestPreviewAndLearnerIsolation:
         post(client, "start-draft", course_id)
         client.force_login(learner)
         assert len(client.get(reverse("catalog_api:course-list")).json()) == 1
+
+
+class TestLearningOrder:
+    """How learners move through the course: any lesson, or in order."""
+
+    def test_a_new_course_lets_learners_open_any_lesson(self, trainer_client):
+        course_id, *_ = make_valid_course(trainer_client)
+        assert get(trainer_client, "course", course_id).json()["learning_order"] == "free"
+
+    def test_the_author_can_make_it_in_order_and_back(self, trainer_client):
+        course_id, *_ = make_valid_course(trainer_client)
+        changed = patch(trainer_client, "course", course_id, data={"learning_order": "sequential"})
+        assert changed.status_code == 200 and changed.json()["learning_order"] == "sequential"
+        assert get(trainer_client, "course", course_id).json()["learning_order"] == "sequential"
+        back = patch(trainer_client, "course", course_id, data={"learning_order": "free"})
+        assert back.json()["learning_order"] == "free"
+
+    def test_changing_it_does_not_disturb_the_title_or_description(self, trainer_client):
+        course_id, *_ = make_valid_course(trainer_client)
+        body = patch(
+            trainer_client, "course", course_id, data={"learning_order": "sequential"}
+        ).json()
+        assert body["title"] == "CX Onboarding 2026"
+
+    @pytest.mark.parametrize("bad", ["", "random", "SEQUENTIAL", "in order"])
+    def test_only_the_two_known_orders_are_accepted(self, trainer_client, bad):
+        course_id, *_ = make_valid_course(trainer_client)
+        response = patch(trainer_client, "course", course_id, data={"learning_order": bad})
+        assert response.status_code == 400
+        assert get(trainer_client, "course", course_id).json()["learning_order"] == "free"
+
+    def test_it_is_locked_once_the_course_is_submitted(self, trainer_client):
+        course_id, _, _, section = make_valid_course(trainer_client)
+        post(trainer_client, "node-activities", section["id"], data={"activity_type": "reading"})
+        activity = get(trainer_client, "course", course_id).json()
+        # A submitted course is in review and can't be edited, order included.
+        from apps.catalog.models import CourseVersion
+
+        CourseVersion.objects.filter(course_id=course_id).update(state="in_review")
+        response = patch(trainer_client, "course", course_id, data={"learning_order": "sequential"})
+        assert response.status_code == 409
+        assert activity["learning_order"] == "free"
+
+    def test_learners_may_not_change_it(self, client, make_role_user, trainer_client):
+        course_id, *_ = make_valid_course(trainer_client)
+        client.force_login(make_role_user(Role.Name.LEARNER, username="l", email="l@example.com"))
+        response = patch(client, "course", course_id, data={"learning_order": "sequential"})
+        assert response.status_code == 403

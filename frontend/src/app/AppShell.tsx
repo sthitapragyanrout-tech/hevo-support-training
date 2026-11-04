@@ -15,7 +15,14 @@ export function AppShell() {
   // Until a temporary password is replaced, there is nowhere else to go.
   const forcedChange = user?.password_change_required === true
   const canAuthor = useCan(CAN.authorContent)
-  const canAdmin = useCanAny([CAN.viewResults, CAN.viewAudit, CAN.manageUsers, CAN.manageRoles])
+  const canAdmin = useCanAny([
+    CAN.viewResults,
+    CAN.viewAudit,
+    CAN.manageUsers,
+    CAN.manageRoles,
+    CAN.rateSimulations,
+    CAN.manageReviews,
+  ])
 
   return (
     <div className={styles.shell}>

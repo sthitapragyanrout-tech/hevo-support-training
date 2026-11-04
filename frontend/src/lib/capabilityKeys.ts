@@ -9,4 +9,6 @@ export const CAN = {
   viewResults: 'progress.view_results',
   manageAttempts: 'progress.manage_attempts',
   viewAudit: 'audit.view_audit',
+  rateSimulations: 'manual_sim.rate_submissions',
+  manageReviews: 'manual_sim.manage_reviews',
 } as const

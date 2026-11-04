@@ -10,6 +10,10 @@ urlpatterns = [
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/catalog/", include("apps.catalog.urls")),
     path("api/v1/authoring/", include("apps.catalog.authoring_urls")),
+    path("api/v1/authoring/media/", include("apps.media_pipeline.authoring_urls")),
+    path("api/v1/media/", include("apps.media_pipeline.urls")),
+    path("api/v1/sim/", include("apps.bot_sim.urls")),
+    path("api/v1/rated-sims/", include("apps.manual_sim.urls")),
     path("api/v1/progress/", include("apps.progress.urls")),
     path("api/v1/admin/", include("apps.console.urls")),
 ]

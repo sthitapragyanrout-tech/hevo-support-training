@@ -10,7 +10,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   workshop: 'Workshop',
   external_course: 'External course',
   manual_sim: 'Simulation',
-  bot_sim: 'Chat simulation',
+  bot_sim: 'Practice ticket',
 }
 
 const ICONS: Record<string, IconName> = {

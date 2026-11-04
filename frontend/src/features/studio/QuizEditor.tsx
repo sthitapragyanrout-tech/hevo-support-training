@@ -27,6 +27,9 @@ export interface EditorProps {
   disabled: boolean
   /** Persist changes to the activity; rejects with a readable message. */
   save: (changes: Parameters<typeof studioApi.updateActivity>[1]) => Promise<void>
+  /** Re-read the course, for changes that happen outside the editor (a video
+   * finishing its processing makes the activity ready). */
+  refresh?: () => Promise<void>
 }
 
 /** Build a quiz with plain fields — questions, choices, which are correct —

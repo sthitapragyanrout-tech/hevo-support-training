@@ -17,5 +17,6 @@ urlpatterns = [
         views.ActivityAttemptView.as_view(),
         name="activity-attempts",
     ),
+    path("activities/<int:pk>/watch/", views.ActivityWatchView.as_view(), name="activity-watch"),
     path("lessons/<int:pk>/complete/", views.LessonCompleteView.as_view(), name="lesson-complete"),
 ]

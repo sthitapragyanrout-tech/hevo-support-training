@@ -29,6 +29,8 @@ async function loadCourses() {
         minutes: totalMinutes(lessons),
         completed: lessons.filter((l) => done.has(l.node.id)).length,
         touched: Object.keys(progress.activities).length > 0,
+        // What to do next, as the server sees it (open, unfinished, required first).
+        next: lessons.find((l) => l.node.id === progress.next_lesson_id)?.node.title ?? null,
       }
     }),
   )
@@ -60,7 +62,7 @@ export function CourseListPage() {
         <h1 className={styles.heading}>My courses</h1>
       </header>
       <ul className={styles.list}>
-        {data.map(({ course, modules, lessons, minutes, completed, touched }) => {
+        {data.map(({ course, modules, lessons, minutes, completed, touched, next }) => {
           const complete = lessons > 0 && completed === lessons
           const inProgress = !complete && (completed > 0 || touched)
           const blurb = parseCourseIntro(course.description).lead[0]
@@ -85,6 +87,11 @@ export function CourseListPage() {
                     <span>{pluralize(modules, 'module')}</span>
                     {minutes != null && <span>~{formatMinutes(minutes)}</span>}
                   </p>
+                  {inProgress && next && (
+                    <p className={styles.next}>
+                      Next: <span>{next}</span>
+                    </p>
+                  )}
                 </div>
                 <span className={styles.action}>
                   {complete ? 'Review' : inProgress ? 'Continue' : 'Start course'}{' '}

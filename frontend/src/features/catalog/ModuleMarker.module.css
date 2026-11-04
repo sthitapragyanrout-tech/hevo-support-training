@@ -33,6 +33,12 @@
   border-color: var(--accent);
 }
 
+.locked {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
 .complete {
   color: var(--accent);
   background: var(--accent-tint);

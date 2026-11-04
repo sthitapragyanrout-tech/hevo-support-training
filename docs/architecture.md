@@ -45,7 +45,7 @@ V1 (≈13 weeks, 6 milestones) ships auth, authoring, the content tree, gating, 
 | Bot service | **FastAPI** (`simbot`), separate container | Native SSE streaming for token-by-token chat, and it isolates slow LLM calls from Django's worker pool. Imports the existing CLI's core logic as a library. |
 | Video | **ffmpeg → HLS**, `hls.js` + a tracking wrapper over HTML5 `<video>` | HLS gives adaptive bitrate and, more importantly, cheap range-accurate seeking for the 90%-at-1× rule. |
 | PDF | **WeasyPrint** | Certificate templates are HTML+CSS, so a non-developer can restyle them; renders deterministically headless with no browser dependency. |
-| Serving | **nginx + gunicorn (sync workers) + Docker Compose**, managed by one systemd unit | Compose gives reproducible upgrades and a rollback story on a single box; systemd gives boot-time start and restart-on-failure. |
+| Serving | **nginx + gunicorn (3 workers × 4 threads by default, `backend/gunicorn.conf.py`) + Docker Compose**, managed by one systemd unit | Compose gives reproducible upgrades and a rollback story on a single box; systemd gives boot-time start and restart-on-failure. |
 | Observability | Structured JSON logs → journald, Sentry, `/healthz` + Uptime Kuma | Proportionate to 10 users. Prometheus/Grafana is an optional add-on, not V1. |
 
 **Rejected:** FastAPI-only backend (you rebuild the admin — 3–5 weeks of V1); Django+HTMX with no SPA (the video player, bot chat, and quiz engine each need real client state, so you land in a hybrid anyway with worse ergonomics); Moodle/Open edX (already ruled out, and correctly — the integration surface is the whole point).
@@ -255,6 +255,13 @@ The same contract serves the **structured simulation** mode with metric keys `de
 
 ### 6.2 `simbot` service API
 
+> **As built (V1):** the engine runs **inside the Django backend**, not as a separate service — a
+> pure `simbot_engine` package (no Django imports) plus `apps/bot_sim` adapters, with its own worker
+> process and a ticket-style (reply-and-come-back, polled) window rather than SSE chat. The paths
+> below are the *extraction target*: the result shape already mirrors §6.1, and moving to a
+> standalone FastAPI service means wrapping the engine and moving the adapters. See
+> [simbot.md](simbot.md) for what is built, the scoring contract and the measured load test.
+
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/v1/sessions` | Body `{launch_token}`. Validates the JWT, reads a set of Zendesk tickets, generates the persona, returns `{session_id, scenario_brief, opening_message}`. |
@@ -320,6 +327,11 @@ Rules are a small JSON expression tree, stored per node, evaluated by a pure fun
 ```
 
 Leaf predicates in V1: `all_required_activities_complete` · `activity_passed(min_scaled)` · `activity_completed` · `node_complete` · `mentor_signoff` · `attempts_remaining` · `date_window` · `manual_override(by_role)` · `competency_at_least(competency, min_scaled)`. Each is a small function in a registry keyed by `op` — adding a predicate is one function plus one admin form hint, never a change to the evaluator.
+
+> **V1 implements one rule** (Module 5): a course version is `free` or `sequential`; in a
+> sequential course a lesson is open once every *required* lesson before it is complete
+> (`apps/progress/sequencing.py`, pure functions; enforced in `progress/services.py`). The
+> per-node rule trees, predicates and recompute projector below are the target design.
 
 **Evaluation.** `evaluate(node, user)` reads only `Progress`, `Attempt`, and `ScoreRollup` rows — never recomputes from raw statements at request time. Recomputation is triggered by the statement projector: a statement write enqueues `recompute_progress(user, node)`, which walks up ancestors and re-evaluates siblings whose rules reference the changed node. For 10 users this is milliseconds; the materialisation exists so the learner tree renders in one query, not N.
 
@@ -399,6 +411,32 @@ Sources with no data yet are excluded and the remainder renormalised, so a mid-p
 Rejected completions write a `failed` statement with a reason and do not unlock anything. Rate-limit statement ingest per session.
 
 **YouTube fallback.** Same interval algorithm, but position comes from polling `getCurrentTime()` at 1s and rate from `getPlaybackRate()`. There are no reliable seek events, so a position discontinuity >1.5s is treated as a seek and closes the interval. Statements carry `tracking_fidelity: "best_effort"`, and the activity type **requires** a paired checkpoint question — the video completion alone never unlocks a gate. Prefer re-hosting anything that gates a segment.
+
+
+> **What V1 does (Module 7 — read this before the design above).** The rule and the goal are
+> as written, but the implementation is deliberately simpler and stricter:
+>
+> - **MP4, not HLS.** One H.264/AAC `faststart` MP4 (≤1280 px wide) plus a poster, served with
+>   HTTP Range requests behind an authorised view. At this platform's scale adaptive streaming
+>   would add a player library and per-segment authorisation for no visible benefit; the asset
+>   model and serving view hide the format, so HLS can be added without touching activities.
+> - **Server-side credit bucket instead of statements.** The browser sends *heartbeats* (every
+>   15 s, and on pause/seek/hide/leave). The server credits only as much *new* coverage as real
+>   server time allows (a token bucket at the credited speed, +10 % tolerance, a 5 s starting
+>   allowance, 90 s capacity; the player says hello with an empty heartbeat when playback starts so
+>   the clock runs from then), per learner and activity — so several tabs share one budget.
+>   Skipped sections earn nothing; rewatching earns nothing extra; replays and reused sequence
+>   numbers are ignored or answered idempotently; each heartbeat is applied under a row lock.
+>   Completion is decided only by the server (`credited ≥ threshold × duration`).
+> - **Guarantee, and its limit.** Finishing a video costs about its length divided by the
+>   credited speed in real time, and scrubbing or forged requests earn no more than playing
+>   would. It **cannot prove a person was paying attention** — a muted tab left playing counts.
+>   Unusual patterns (credit refused, parallel sessions, mostly-background playback, too-fast
+>   playback) set `needs_review` for trainers; they never block a learner.
+> - **YouTube** plays inside the lesson via the IFrame API and is tracked best-effort: its length
+>   is whatever the browser reports, the completion is always flagged `needs_review`, and the
+>   paired checkpoint question is **not built** (a trainer can add a quiz after the video).
+> - Details, limits and operations: [media-pipeline.md](media-pipeline.md).
 
 ---
 
@@ -610,3 +648,24 @@ training-platform/
 - **End-to-end** — Playwright: log in as a trainee, walk a segment (read → watch → quiz → bot chat), fail the quiz, retake, pass, unlock the next segment, get rated by a mentor, reach eligibility, download the PDF, verify it at `/verify/{code}`.
 - **Non-developer authoring** — a scripted, observed session where someone outside engineering authors a new course with three activity types and a gate, unaided. Pass/fail, and it blocks the V1 release.
 - **Restore drill** — `make restore-drill` restores last night's backup into a scratch stack and runs the E2E suite against it. Quarterly, timed, recorded in the runbook.
+
+---
+
+## Implementation note — mentor-rated simulations (Module 6) vs this design
+
+Built as [manual-simulation.md](manual-simulation.md). Where it differs from the plan above:
+
+* **The rubric lives in the activity's `config`** (immutable once published), not in `Rubric` /
+  `RubricMetric` tables; criteria are equal-weight and there is no `MetricCompetencyMap` yet (that
+  belongs to the later rollup). Each rating row copies the criterion's key and label.
+* **No `Attempt`-per-submission.** A submission is an immutable *revision* (`SimSubmission`); a rating
+  creates one generic `ActivityAttempt` (score = overall / 5). There is **no attempt limit**: deadlines
+  (`SimCase.due_at`) and a trainer's extend / waive / close bound the work.
+* **`MentorAssignment` is per learner per course** (not per program/activity), written only by
+  `assignments.assign_mentor` for the enrolment workflow to call; until then everything goes to the shared pool.
+* **Handing in opens the next lesson** (setting `holds_next`, default): a lesson is marked complete as
+  *provisional* while a mentor's rating is awaited, so it opens what follows but is not counted as complete until
+  the rating passes. `sequencing.py` is unchanged; `progress.settle_lesson` keeps the flag in line with the activities.
+* **Amendments** ("a new versioned rating") are not built. Ratings are final.
+* The permission pair is `manual_sim.rate_submissions` and `manual_sim.manage_reviews`, added to
+  `ROLE_PERMISSIONS` / `KNOWN_ACTIONS`; the role matrix shows both.

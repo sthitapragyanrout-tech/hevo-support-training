@@ -377,9 +377,16 @@ class TestIsolationAndLoad:
         client.force_login(two)
         assert progress(client, course) == {
             "completed_lessons": [],
+            "awaiting_review_lessons": [],
             "activities": {},
             "attempts": {},
             "can_reset_attempts": False,
+            "watch": {},
+            "sim": {},
+            "rated": {},
+            "learning_order": "free",
+            "locked": {},
+            "next_lesson_id": course["lesson"].id,
         }
         assert (
             attempt(client, course["quiz"], WRONG).json()["attempts_left"] == 2
@@ -390,7 +397,7 @@ class TestIsolationAndLoad:
     ):
         for _ in range(3):
             attempt(lc, course["quiz"], WRONG)
-        with django_assert_max_num_queries(6):
+        with django_assert_max_num_queries(10):
             assert (
                 lc.get(reverse("progress_api:course", args=[course["version"].id])).status_code
                 == 200

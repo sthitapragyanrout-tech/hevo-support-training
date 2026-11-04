@@ -145,3 +145,13 @@
     margin-left: 56px;
   }
 }
+
+.next {
+  margin-top: 2px;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.next span {
+  color: var(--text-body);
+}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ActivityAttempt, ActivityProgress, LessonCompletion
+from .models import ActivityAttempt, ActivityProgress, LessonCompletion, VideoWatch
 
 
 @admin.register(ActivityProgress)
@@ -18,7 +18,8 @@ class ActivityProgressAdmin(admin.ModelAdmin):
 
 @admin.register(LessonCompletion)
 class LessonCompletionAdmin(admin.ModelAdmin):
-    list_display = ("user", "node", "completed_at")
+    list_display = ("user", "node", "completed_at", "provisional")
+    list_filter = ("provisional",)
     search_fields = ("user__username", "user__email", "node__title")
     list_select_related = ("user", "node")
 
@@ -46,6 +47,23 @@ class ActivityAttemptAdmin(admin.ModelAdmin):
         "passed",
         "submitted_at",
     )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(VideoWatch)
+class VideoWatchAdmin(admin.ModelAdmin):
+    """Read-only record of verified watching, with anything flagged for review."""
+
+    list_display = ("user", "activity", "credited_seconds", "needs_review", "completed_at")
+    list_filter = ("needs_review", "fidelity")
+    search_fields = ("user__username", "user__email", "activity__title")
+    list_select_related = ("user", "activity")
+    readonly_fields = [f.name for f in VideoWatch._meta.fields]
 
     def has_add_permission(self, request):
         return False

@@ -422,8 +422,9 @@ def set_role_permissions(role: Role, keys: list[str]) -> dict[str, list[str]]:
     if role.name == Role.Name.ADMIN:
         dropped = sorted(set(ADMIN_LOCKED_ACTIONS) - wanted)
         if dropped:
+            names = [f"“{ACTION_LABELS[key][0]}”" for key in ADMIN_LOCKED_ACTIONS]
             raise AdminError(
-                "Admins must keep “Manage users” and “Manage roles”, "
+                f"Admins must keep {', '.join(names[:-1])} and {names[-1]}, "
                 "or nobody could undo a mistake."
             )
     perms = []

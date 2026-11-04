@@ -51,6 +51,8 @@ export interface VersionInfo {
 }
 
 export interface AuthCourse extends AuthCourseSummary {
+  /** How learners move through the course. */
+  learning_order?: 'free' | 'sequential'
   version: VersionInfo | null
   published_version: VersionInfo | null
   editable: boolean

@@ -34,3 +34,53 @@
   font-size: var(--fs-14);
   color: var(--text-muted);
 }
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 var(--sp-2);
+  padding: 0;
+  border: 0;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.option:has(input:checked) {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}
+
+.option input {
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.option strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hint {
+  display: block;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.problem {
+  font-size: var(--fs-14);
+  color: var(--danger);
+}
+
+.next {
+  margin-top: var(--sp-8);
+}

@@ -17,18 +17,27 @@ export function AdminLayout() {
   const canUsers = useCan(CAN.manageUsers)
   const canRoles = useCan(CAN.manageRoles)
   const canCourses = useCanAny([CAN.authorContent, CAN.publishCourse])
+  const canReview = useCanAny([CAN.rateSimulations, CAN.manageReviews])
 
   const groups: { title: string; items: Item[] }[] = [
     {
       title: 'Results',
       items: [
+        { to: '/admin/results/dashboard', label: 'Dashboard', allowed: canResults },
         { to: '/admin/results/learners', label: 'Learners', allowed: canResults },
         { to: '/admin/results/quizzes', label: 'Quizzes', allowed: canResults },
       ],
     },
     {
+      title: 'Review',
+      items: [{ to: '/admin/ratings', label: 'Ratings', allowed: canReview }],
+    },
+    {
       title: 'Content',
-      items: [{ to: '/admin/courses', label: 'Courses', allowed: canCourses }],
+      items: [
+        { to: '/admin/courses', label: 'Courses', allowed: canCourses },
+        { to: '/admin/practice', label: 'Practice scenarios', allowed: canCourses },
+      ],
     },
     {
       title: 'People',
@@ -80,9 +89,11 @@ export function AdminIndex() {
   const canAudit = useCan(CAN.viewAudit)
   const canUsers = useCan(CAN.manageUsers)
   const canRoles = useCan(CAN.manageRoles)
+  const canReview = useCanAny([CAN.rateSimulations, CAN.manageReviews])
   if (canResults) return <Navigate to="/admin/results/learners" replace />
   if (canUsers) return <Navigate to="/admin/users" replace />
   if (canRoles) return <Navigate to="/admin/roles" replace />
   if (canAudit) return <Navigate to="/admin/audit" replace />
+  if (canReview) return <Navigate to="/admin/ratings" replace />
   return null
 }

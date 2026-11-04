@@ -9,6 +9,8 @@ export interface Call {
   method: string
   path: string
   query: URLSearchParams
+  /** The JSON the app sent, if any. */
+  body: Record<string, unknown> | null
 }
 
 export type Reply = { status?: number; body?: unknown }
@@ -49,7 +51,8 @@ export function mockApi(
     vi.fn(async (url: string, init: RequestInit = {}) => {
       const [path, search = ''] = url.split('?')
       const method = (init.method ?? 'GET').toUpperCase()
-      const call = { method, path, query: new URLSearchParams(search) }
+      const body = init.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null
+      const call = { method, path, query: new URLSearchParams(search), body }
       calls.push(call)
       let result: Reply = { status: 404, body: { detail: 'Not found.' } }
       if (path.includes('/auth/session/')) {

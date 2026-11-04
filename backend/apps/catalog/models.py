@@ -67,6 +67,16 @@ class CourseVersion(models.Model):
     )
     version = models.PositiveIntegerField()
     state = models.CharField(max_length=16, choices=State.choices, default=State.DRAFT)
+
+    class LearningOrder(models.TextChoices):
+        FREE = "free", "Learners can open any lesson"
+        SEQUENTIAL = "sequential", "Learners go in order"
+
+    # How learners move through the course. Part of the version, so a published
+    # course keeps the order it was published with.
+    learning_order = models.CharField(
+        max_length=16, choices=LearningOrder.choices, default=LearningOrder.FREE
+    )
     published_at = models.DateTimeField(null=True, blank=True)
     published_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

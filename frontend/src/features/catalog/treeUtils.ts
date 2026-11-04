@@ -1,4 +1,4 @@
-import type { ActivitySummary, TreeNode } from '../../lib/api'
+import type { ActivitySummary, RatedSummary, TreeNode } from '../../lib/api'
 
 /* Learner vocabulary is Course → Module → Lesson, and a lesson is made of
  * Sections. In the data these are root → `segment` → `topic` → `subtopic`.
@@ -114,13 +114,24 @@ export function totalMinutes(lessons: Lesson[]): number | null {
 export function pendingRequired(
   lesson: Lesson,
   activities: Record<number, string | undefined>,
+  rated: Record<number, RatedSummary> = {},
 ): ActivitySummary[] {
   return lessonActivities(lesson).filter(
     (a) =>
       a.is_required &&
       a.completable &&
       activities[a.id] !== 'completed' &&
-      activities[a.id] !== 'exhausted', // out of attempts: scored, not passed, free to move on
+      activities[a.id] !== 'exhausted' && // out of attempts: scored, not passed, free to move on
+      !handedIn(rated[a.id]), // work handed in for a rating that opens the next lesson
+  )
+}
+
+/** Work handed in for a mentor's rating, where handing it in is enough to move on. */
+function handedIn(summary: RatedSummary | undefined): boolean {
+  return (
+    summary != null &&
+    summary.holds_next === 'submit' &&
+    (summary.status === 'waiting' || summary.status === 'changes_requested')
   )
 }
 

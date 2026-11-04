@@ -1,4 +1,4 @@
-import { request } from '../../lib/api'
+import { request, type TrainerSimResult } from '../../lib/api'
 
 export interface Paged<T> {
   results: T[]
@@ -63,6 +63,38 @@ export interface LearnerActivity {
   best_score: number | null
   attempts: AttemptRow[]
   max_attempts: number
+  /** Mentor-rated simulations only: where the learner's work stands, for a trainer. */
+  rated?: RatedOverview | null
+  /** Practice tickets only: each go, with its score, so a trainer can open the transcript. */
+  sim?: {
+    best_raw: number | null
+    /** Finished, scored tickets; the average of their scores; questions skipped; and how many to finish. */
+    finished: number
+    average_raw: number | null
+    skips: number
+    required: number
+    sessions: {
+      id: number
+      state: 'open' | 'finishing' | 'finished' | 'abandoned'
+      started_at: string
+      raw: number | null
+      passed: boolean | null
+      needs_review: boolean
+      reasons: string[]
+      repeated: boolean
+      abandon_reason: string
+      skip_reason: string
+    }[]
+  } | null
+  /** Videos only: how much was verifiably watched, and anything worth a look. */
+  watch?: {
+    /** Null for a video that can't be measured (Google Drive): the learner confirmed it. */
+    watched_fraction: number | null
+    needs_review: boolean
+    /** Plain-language reasons (never technical codes). */
+    reasons: string[]
+    fidelity: 'verified' | 'best_effort' | 'self_reported' | null
+  } | null
 }
 
 export interface LearnerCourse {
@@ -258,6 +290,330 @@ export interface SignInRow {
 
 const json = (body: unknown) => JSON.stringify(body)
 
+// ------------------------------------------------------- practice scenarios
+
+export type ScenarioStatus = 'draft' | 'approved' | 'retired'
+
+export interface PracticeScenario {
+  id: number
+  topic: string
+  topic_label: string
+  persona_type: string
+  issue_summary: string
+  opening_message: string
+  personality_notes: string
+  doc_hints: string[]
+  reference_answer: string
+  doc_url: string
+  status: ScenarioStatus
+  source: ScenarioSource
+  created_by: string | null
+  approved_by: string | null
+  approved_at: string | null
+  created_at: string
+  uses: number
+  /** Past-query imports: the Zendesk ticket it came from (trainers only). */
+  source_ticket_id: string | null
+  /** Approved by the strict automatic checks rather than a person. */
+  auto_approved: boolean
+  /** Why a trainer should look again (e.g. several learners skipped it). */
+  review_note: string
+  import_run: number | null
+  /** How it is going in practice. */
+  skips: Partial<Record<SkipReasonKey, number>>
+  finished: number
+  average: number | null
+}
+
+export type ScenarioSource = 'generated' | 'manual' | 'seed' | 'zendesk'
+export type SkipReasonKey = 'duplicate' | 'unclear' | 'not_relevant'
+
+export interface ZendeskStatus {
+  configured: boolean
+  import_enabled: boolean
+  signoff_recorded: boolean
+  audited_at: string | null
+  audit: { examined?: number; accepted?: number; reasons?: Record<string, number> }
+  /** Why an import can't run right now (null = it can). */
+  blocked_reason: string | null
+  auto_approve: { on: boolean; setting: boolean; master: boolean }
+}
+
+/** How many questions learners can get, against how many we want. `empty` = nobody can start. */
+export interface BankStatus {
+  approved: number
+  drafts: number
+  target: number
+  state: 'empty' | 'low' | 'ok'
+}
+
+export interface TopUpStatus {
+  /** On right now (the server switch AND the Console switch). */
+  on: boolean
+  setting: boolean
+  master: boolean
+  /** Past tickets looked at per night. */
+  count: number
+  next_run_at: string
+  last_check: { at: string; outcome: 'queued' | 'skipped'; reason: string } | null
+  paused: boolean
+}
+
+export interface PracticeOptions {
+  topics: { key: string; label: string }[]
+  personas: string[]
+  model_ready: boolean
+  counts: Partial<Record<ScenarioStatus, number>>
+  zendesk: ZendeskStatus
+  bank: BankStatus
+  topup: TopUpStatus
+  skips_allowed: number
+  import_max: number
+}
+
+export interface ScenarioImportRow {
+  id: number
+  state: 'queued' | 'running' | 'done' | 'failed'
+  state_label: string
+  requested: number
+  topic: string
+  examined: number
+  approved: number
+  drafted: number
+  duplicates: number
+  failed: number
+  rejected: Record<string, number>
+  auto_approve: boolean
+  error: string
+  started_by: string | null
+  trigger: 'manual' | 'scheduled'
+  created_at: string
+  finished_at: string | null
+  /** Still approved automatically right now (what "send back" would undo). */
+  approved_now: number
+}
+
+export type ScenarioFields = Partial<
+  Pick<
+    PracticeScenario,
+    'topic' | 'persona_type' | 'issue_summary' | 'opening_message' | 'personality_notes' | 'doc_hints' | 'reference_answer' | 'doc_url'
+  >
+>
+
+export interface TranscriptTurn {
+  seq: number
+  role: 'customer' | 'intern'
+  text: string
+  at: string
+  action: string
+  tat_seconds: number | null
+  scores: {
+    communication: number
+    empathy: number
+    accuracy: number
+    concreteness: number
+    tat: number
+    tat_seconds: number
+    notes: Record<string, string>
+    docs_relevance: number | null
+    flags: string[]
+  } | null
+  job_state: string
+  job_error: string
+}
+
+export interface PracticeTranscript {
+  id: number
+  learner: { id: number; name: string }
+  activity: { id: number; title: string }
+  state: string
+  preview: boolean
+  repeated: boolean
+  abandon_reason: string
+  scenario: Record<string, unknown> & { issue_summary?: string; opening_message?: string; persona_type?: string; topic?: string }
+  started_at: string
+  finished_at: string | null
+  tokens_used: number
+  models: { customer: string | null; evaluator: string | null }
+  turns: TranscriptTurn[]
+  result: TrainerSimResult | null
+}
+
+// -------------------------------------------------- mentor-rated simulations
+
+export interface Person {
+  id: number
+  name: string
+  email: string
+}
+
+export type Route = 'mine' | 'pool' | 'escalated' | 'routed'
+export type CaseStatus =
+  | 'not_submitted'
+  | 'waiting'
+  | 'changes_requested'
+  | 'passed'
+  | 'waived'
+  | 'not_passed'
+
+export interface RatingRow {
+  id: number
+  learner: Person
+  activity: { id: number; title: string }
+  course: string
+  revision: number
+  submitted_at: string
+  late: boolean
+  review_due_at: string
+  review_overdue: boolean
+  route: Route
+  assigned_mentor: string | null
+  claimed_by: string | null
+  claimed_by_me: boolean
+  needs_attention: boolean
+  can_rate: boolean
+  /** The viewer's own work: listed, but never theirs to rate. */
+  own: boolean
+}
+
+export interface CaseRow {
+  case_id: number
+  learner: Person
+  activity: { id: number; title: string }
+  course: string
+  status: CaseStatus
+  due_at: string | null
+  overdue: boolean
+  revisions: number
+  unsuccessful: number
+  needs_attention: boolean
+}
+
+export interface RatingQueue<Row> extends Paged<Row> {
+  tab: 'mine' | 'pool' | 'all' | 'cases'
+  counts: { all?: number; mine?: number; pool?: number }
+}
+
+export interface RatingCriterion {
+  key: string
+  label: string
+  description: string
+  guidance: string
+}
+
+export interface ThreadRevision {
+  id: number
+  revision: number
+  state: 'submitted' | 'rated' | 'withdrawn'
+  submitted_at: string
+  late: boolean
+  answer: string
+  links: string[]
+  files: { id: string; name: string; type: string; size_bytes: number; url: string; inline: boolean }[]
+  review_due_at: string
+  withdrawn_by: string
+  routing: string
+  assigned_mentor: string | null
+  rating: {
+    raw_score: number
+    passed: boolean
+    comment: string
+    rated_at: string | null
+    mentor: string | null
+    scores: { key: string; label: string; score: number; max: number; feedback: string }[]
+  } | null
+}
+
+export interface RatingDraft {
+  scores: Record<string, number | null>
+  feedback: Record<string, string>
+  comment: string
+  by: string | null
+  mine: boolean
+}
+
+export interface RatingThread {
+  id: number
+  revision: number
+  state: 'submitted' | 'rated' | 'withdrawn'
+  learner: Person
+  activity: { id: number; title: string }
+  course: string
+  scenario: string
+  handin: string
+  criteria: RatingCriterion[]
+  pass_rule: string
+  pass_threshold: number
+  min_each: number
+  mentor_for_course: string | null
+  routing: {
+    route: Route | null
+    assigned_mentor: string | null
+    claimed_by: string | null
+    claimed_by_me: boolean
+    review_due_at: string
+    review_overdue: boolean
+    escalated: boolean
+  }
+  access: { can_rate: boolean; reason: string; can_manage: boolean }
+  case: {
+    id: number
+    status: CaseStatus
+    due_at: string | null
+    due_basis: string
+    overdue: boolean
+    needs_attention: boolean
+    unsuccessful: number
+    closed_reason: string
+    close_note: string
+  }
+  draft: RatingDraft | null
+  revisions: ThreadRevision[]
+}
+
+export interface RatingBody {
+  scores: Record<string, number | null>
+  feedback: Record<string, string>
+  comment: string
+}
+
+export interface RatingStats {
+  window_days: number
+  rated: number
+  median_hours: number | null
+  waiting: number
+  waiting_overdue: number
+  escalated: number
+  mentors: { id: number; name: string; rated: number; median_hours: number; reviewed_late: number }[]
+}
+
+/** A mentor-rated simulation as a trainer sees it on a learner's page. */
+export interface RatedOverview {
+  case_id: number
+  status: CaseStatus
+  revisions: number
+  unsuccessful: number
+  needs_attention: boolean
+  due_at: string | null
+  due_basis: string
+  overdue: boolean
+  last_score: number | null
+  closed_reason: string
+  close_note: string
+  waiting: {
+    id: number
+    review_due_at: string
+    review_overdue: boolean
+    escalated: boolean
+    assigned_mentor: string | null
+  } | null
+}
+
+const send = (method: string, body?: unknown): RequestInit => ({
+  method,
+  body: body === undefined ? undefined : JSON.stringify(body),
+})
+
 export const adminApi = {
   courses: () => request<{ results: CourseOption[] }>(admin('results/courses/')),
   learners: (q: Query) => request<Paged<LearnerRow>>(admin('results/learners/', q)),
@@ -306,4 +662,55 @@ export const adminApi = {
     }),
   audit: (q: Query) => request<Paged<AuditEntry>>(admin('audit/', q)),
   auditActions: () => request<{ results: string[] }>(admin('audit/actions/')),
+  practiceOptions: () => request<PracticeOptions>(admin('practice/options/')),
+  scenarios: (q: Query) => request<Paged<PracticeScenario>>(admin('practice/scenarios/', q)),
+  createScenario: (body: ScenarioFields) =>
+    request<PracticeScenario>(admin('practice/scenarios/'), send('POST', body)),
+  updateScenario: (id: number, body: ScenarioFields) =>
+    request<PracticeScenario>(admin(`practice/scenarios/${id}/`), send('PATCH', body)),
+  approveScenario: (id: number) =>
+    request<PracticeScenario>(admin(`practice/scenarios/${id}/approve/`), send('POST')),
+  retireScenario: (id: number) =>
+    request<PracticeScenario>(admin(`practice/scenarios/${id}/retire/`), send('POST')),
+  restoreScenario: (id: number) =>
+    request<PracticeScenario>(admin(`practice/scenarios/${id}/restore/`), send('POST')),
+  generateScenarios: (body: { count: number; topic?: string; persona?: string }) =>
+    request<{ detail: string }>(admin('practice/scenarios/generate/'), send('POST', body)),
+  imports: () => request<{ results: ScenarioImportRow[] }>(admin('practice/imports/')),
+  startImport: (body: { count: number; topic?: string }) =>
+    request<ScenarioImportRow>(admin('practice/imports/'), send('POST', body)),
+  revertImport: (id: number) =>
+    request<ScenarioImportRow & { sent_back: number }>(
+      admin(`practice/imports/${id}/revert/`),
+      send('POST'),
+    ),
+  setAutoApprove: (on: boolean) =>
+    request<ZendeskStatus['auto_approve']>(
+      admin('practice/settings/'),
+      send('PATCH', { auto_approve_enabled: on }),
+    ),
+  setTopUp: (on: boolean) =>
+    request<TopUpStatus>(admin('practice/top-up/'), send('PATCH', { enabled: on })),
+  ratingsQueue: <Row = RatingRow>(q: Query) => request<RatingQueue<Row>>(admin('ratings/queue/', q)),
+  ratingThread: (id: number | string) => request<RatingThread>(admin(`ratings/submissions/${id}/`)),
+  claimRating: (id: number) =>
+    request<RatingThread>(admin(`ratings/submissions/${id}/claim/`), send('POST')),
+  releaseRating: (id: number) =>
+    request<RatingThread>(admin(`ratings/submissions/${id}/release/`), send('POST')),
+  reassignRating: (id: number, mentorId: number | null) =>
+    request<RatingThread>(admin(`ratings/submissions/${id}/reassign/`), send('POST', { mentor_id: mentorId })),
+  draftRating: (id: number, body: Partial<RatingBody>) =>
+    request<RatingThread>(admin(`ratings/submissions/${id}/draft/`), send('POST', body)),
+  rate: (id: number, body: RatingBody) =>
+    request<RatingThread>(admin(`ratings/submissions/${id}/rate/`), send('POST', body)),
+  caseAction: (id: number, action: 'extend' | 'waive' | 'close' | 'reopen', body: { reason: string; days?: number }) =>
+    request<{ case: { id: number; status: CaseStatus; due_at: string | null; overdue: boolean } }>(
+      admin(`ratings/cases/${id}/${action}/`),
+      send('POST', body),
+    ),
+  ratingMentors: (learnerId?: number) =>
+    request<{ results: Person[] }>(admin('ratings/mentors/', { learner: learnerId })),
+  ratingStats: () => request<RatingStats>(admin('ratings/stats/')),
+  transcript: (id: number | string) =>
+    request<PracticeTranscript>(admin(`results/sessions/${id}/`)),
 }

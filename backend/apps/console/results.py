@@ -107,7 +107,8 @@ class _Echo:
 
 
 class ResultsExportView(ConsoleView):
-    """Every attempt as a CSV. An export is a sensitive read, so it is logged."""
+    """Every attempt (quizzes and practice tickets) as a CSV. An export is a sensitive
+    read, so it is logged."""
 
     required_action = VIEW_RESULTS
 
@@ -117,11 +118,13 @@ class ResultsExportView(ConsoleView):
         "Employee id",
         "Course",
         "Version",
-        "Quiz",
+        "Activity",
         "Attempt",
-        "Score %",
+        "Score %",  # quizzes only; the other two are scored out of 5 (last column)
         "Result",
         "Submitted at",
+        "Type",
+        "Score out of 5",
     ]
 
     def get(self, request: Request) -> StreamingHttpResponse:
@@ -138,5 +141,5 @@ class ResultsExportView(ConsoleView):
         writer = csv.writer(_Echo())
         stream = (writer.writerow(r) for r in [self.HEADER, *rows])
         response = StreamingHttpResponse(stream, content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="quiz-results.csv"'
+        response["Content-Disposition"] = 'attachment; filename="results.csv"'
         return response
