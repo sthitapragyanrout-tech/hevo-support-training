@@ -29,6 +29,7 @@ from django.utils import timezone
 
 from apps.activities import manual_sim as cfg
 from apps.catalog.models import Activity
+from apps.notifications import events
 from apps.progress import services as progress
 from apps.progress.models import ActivityAttempt, ActivityProgress
 
@@ -253,6 +254,7 @@ def _submit(user, activity_id, answer, links, uploads, now) -> SimSubmission:
                         size_bytes=kind.size,
                     )
                 )
+            events.work_waiting_sim(sub)
             return sub
     except BaseException:
         files.discard(written)  # the rows roll back with the transaction; so do the files
@@ -275,6 +277,7 @@ def withdraw(user, submission_id: int, *, now=None) -> SimSubmission:
     if access.lease(sub, now) is not None or sub.draft:
         raise Conflict("A mentor has started reviewing it, so it can’t be withdrawn now.")
     _withdraw(sub, "learner")
+    events.work_done("sim", sub.pk)
     _settle(sub.case.user, sub.case.activity)
     return sub
 
@@ -372,6 +375,7 @@ def reassign(actor, submission_id: int, mentor=None, *, now=None) -> SimSubmissi
     sub.claimed_by = None
     sub.claimed_at = None
     sub.save(update_fields=["assigned_mentor", "routing", "claimed_by", "claimed_at"])
+    events.work_reassigned("sim", sub)
     return sub
 
 
@@ -508,6 +512,10 @@ def rate(rater, submission_id: int, scores, feedback=None, comment=None, *, now=
         case.save(update_fields=["due_at", "due_basis"])
     else:
         _settle(learner, activity)
+    events.work_done("sim", sub.pk)
+    events.sim_rated(
+        sub, passed=bool(result.passed), revise_by=None if result.passed else case.due_at
+    )
     return sub
 
 
@@ -569,6 +577,7 @@ def _finish(actor, case_id: int, reason: Any, closed: str, now) -> SimCase:
         raise Conflict("They’ve already passed this one.")
     for waiting in case.submissions.select_for_update().filter(state=S.SUBMITTED):
         _withdraw(waiting, "closed")  # a rating can't arrive after the case is closed
+        events.work_done("sim", waiting.pk)
     case.closed_at = now
     case.closed_by = actor
     case.closed_reason = closed

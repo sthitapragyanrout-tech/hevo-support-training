@@ -4,6 +4,8 @@ import { Logo } from '../components/Logo'
 import { useAuth } from '../lib/auth'
 import { useCan, useCanAny } from '../lib/capabilities'
 import { CAN } from '../lib/capabilityKeys'
+import { NotificationBell } from '../features/notifications/NotificationBell'
+import { NotificationsProvider } from '../features/notifications/NotificationsContext'
 import styles from './AppShell.module.css'
 import { UserMenu } from './UserMenu'
 
@@ -25,42 +27,47 @@ export function AppShell() {
   ])
 
   return (
-    <div className={styles.shell}>
-      <a href="#main" className="skip-link">
-        Skip to content
-      </a>
-      <header className={styles.header}>
-        <Link to="/" className={styles.brand} aria-label="Hevo Support Training — home">
-          <Logo size={26} />
-          <span className={styles.name}>
-            <span className={styles.hevo}>Hevo</span> Support Training
-          </span>
-        </Link>
-        {!forcedChange && (
-          <nav className={styles.nav} aria-label="Main">
-            <NavLink to="/" end className={({ isActive }) => (isActive ? styles.active : '')}>
-              My courses
-            </NavLink>
-            <NavLink to="/progress" className={({ isActive }) => (isActive ? styles.active : '')}>
-              My progress
-            </NavLink>
-            {canAuthor && (
-              <NavLink to="/studio" className={({ isActive }) => (isActive ? styles.active : '')}>
-                Studio
+    <NotificationsProvider enabled={!forcedChange}>
+      <div className={styles.shell}>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
+        <header className={styles.header}>
+          <Link to="/" className={styles.brand} aria-label="Hevo Support Training — home">
+            <Logo size={26} />
+            <span className={styles.name}>
+              <span className={styles.hevo}>Hevo</span> Support Training
+            </span>
+          </Link>
+          {!forcedChange && (
+            <nav className={styles.nav} aria-label="Main">
+              <NavLink to="/" end className={({ isActive }) => (isActive ? styles.active : '')}>
+                My courses
               </NavLink>
-            )}
-            {canAdmin && (
-              <NavLink to="/admin" className={({ isActive }) => (isActive ? styles.active : '')}>
-                Admin
+              <NavLink to="/progress" className={({ isActive }) => (isActive ? styles.active : '')}>
+                My progress
               </NavLink>
-            )}
-          </nav>
-        )}
-        <UserMenu />
-      </header>
-      <main id="main" tabIndex={-1} className={styles.main}>
-        <Outlet />
-      </main>
-    </div>
+              {canAuthor && (
+                <NavLink to="/studio" className={({ isActive }) => (isActive ? styles.active : '')}>
+                  Studio
+                </NavLink>
+              )}
+              {canAdmin && (
+                <NavLink to="/admin" className={({ isActive }) => (isActive ? styles.active : '')}>
+                  Admin
+                </NavLink>
+              )}
+            </nav>
+          )}
+          <div className={styles.actions}>
+            {!forcedChange && <NotificationBell />}
+            <UserMenu />
+          </div>
+        </header>
+        <main id="main" tabIndex={-1} className={styles.main}>
+          <Outlet />
+        </main>
+      </div>
+    </NotificationsProvider>
   )
 }

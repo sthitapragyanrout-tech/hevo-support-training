@@ -131,7 +131,7 @@ flowchart TB
 | **Activity Provider registry (HALO)** | Registered external tools, keypairs, launch-token minting, outcome callback validation, idempotency & replay protection | The tools' internals |
 | **Activity type plugins** | Per type: JSON Schema for config, SPA renderer key, statement→completion rule, score extraction | Persistence, gating, scoring |
 | **Confluence proxy** | Server-side authenticated fetch via service account, sanitise, rewrite asset URLs, cache | Forwarding user credentials (never) |
-| **Notifications** | Escalation on retake cap, mentor rating queue, cohort digests. Email in V1; Slack in V2 | — |
+| **Notifications** | Escalation on retake cap, mentor rating queue, cohort digests. **Built so far: in-app bell and list with event hooks and a reminder sweep ([notifications.md](notifications.md)).** Email next (one `deliver()` hook); Slack in V2 | — |
 | **`simbot` service** | Persona generation from Zendesk tickets, in-character chat, AI evaluation, outcome POST | Storing progress or scores |
 | **Media pipeline** | Upload → ffmpeg HLS ladder → thumbnails → duration probe → publish | Playback tracking (client-side) |
 

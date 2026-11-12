@@ -151,3 +151,24 @@ def test_two_quick_submits_of_a_written_quiz_park_one_attempt(make_role_user):
     others = [value for kind, value in results if kind != "ok"]
     assert all(isinstance(v, progress.AttemptNotAllowed) for v in others), others
     assert QuizReview.objects.filter(user=learner).count() == 1
+
+
+def test_sweeps_running_at_once_raise_each_reminder_exactly_once(make_role_user):
+    from datetime import timedelta
+
+    from apps.manual_sim import services as sims
+    from apps.notifications import sweeps
+    from apps.notifications.models import Notification
+    from tests.manual_sim_helpers import at, people, rated_course
+
+    w = {**rated_course(make_role_user), **people(make_role_user)}
+    services.enroll(w["learner"], w["course"])
+    case = sims.open_case(w["learner"], w["activity"].pk, now=at())
+    late = case.due_at + timedelta(hours=1)
+
+    results = run_together([lambda: sweeps.sweep(now=late)] * 5)
+    assert [kind for kind, _ in results] == ["ok"] * 5, results
+    assert Notification.objects.filter(user=w["learner"], kind="overdue").count() == 1
+    # And one digest per manager, however many sweeps ran together.
+    managers = Notification.objects.filter(kind="overdue_digest")
+    assert managers.count() == managers.values("user").distinct().count() > 0

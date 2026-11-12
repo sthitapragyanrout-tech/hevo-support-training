@@ -21,6 +21,12 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   plus: <path d="M8 3v10M3 8h10" />,
+  bell: (
+    <>
+      <path d="M3.5 11.5h9l-1.1-1.6V7A3.4 3.4 0 0 0 8 3.6 3.4 3.4 0 0 0 4.6 7v2.9L3.5 11.5z" />
+      <path d="M6.6 13.4a1.5 1.5 0 0 0 2.8 0" />
+    </>
+  ),
   lock: (
     <>
       <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />

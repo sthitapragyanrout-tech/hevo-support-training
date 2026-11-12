@@ -38,7 +38,11 @@ export const ROLE_OPTIONS = {
     { name: 'admin', label: 'Admin', builtin: true },
   ],
 }
-const DEFAULTS: Record<string, unknown> = { 'GET /api/v1/admin/roles/options/': ROLE_OPTIONS }
+const DEFAULTS: Record<string, unknown> = {
+  'GET /api/v1/admin/roles/options/': ROLE_OPTIONS,
+  // The header bell polls this on every page that renders the shell.
+  'GET /api/v1/notifications/unread-count/': { unread_count: 0 },
+}
 
 export function mockApi(
   capabilities: string[],

@@ -19,6 +19,7 @@ from django.db.models import Q
 
 from apps.bot_sim.models import SimSession
 from apps.catalog.models import ContentNode, CourseVersion
+from apps.notifications import events
 
 from .errors import Conflict, EnrollmentError
 from .models import Enrollment, ModuleExclusion
@@ -106,4 +107,7 @@ def set_modules(enrollment: Enrollment, enabled: Iterable[int]) -> Change:
     if problems:
         raise Conflict(problems[0])
     write_exclusions(row, after)
+    if set(after) != before:
+        total = len(modules_of(row.version))
+        events.modules_changed(row, total - len(after), total)
     return Change(row, sorted(before), sorted(after))

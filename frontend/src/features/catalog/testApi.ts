@@ -268,6 +268,7 @@ export function mockLearnerApi(options: Options = {}) {
         completed.add(id)
         return reply(200, { completed: true })
       }
+      if (path === '/api/v1/notifications/unread-count/') return reply(200, { unread_count: 0 })
       return reply(404, { detail: 'Not found.' })
     }),
   )

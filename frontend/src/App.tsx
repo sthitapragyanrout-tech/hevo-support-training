@@ -22,6 +22,7 @@ import { ProgramsPage } from './features/admin/ProgramsPage'
 import { QuizReviewPage } from './features/admin/QuizReviewPage'
 import { RatingPage } from './features/admin/RatingPage'
 import { ProgressPage } from './features/catalog/ProgressPage'
+import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { RatingsPage } from './features/admin/RatingsPage'
 import { QuizDetailPage } from './features/admin/QuizDetailPage'
 import { QuizzesPage } from './features/admin/QuizzesPage'
@@ -67,6 +68,7 @@ function App() {
       >
         <Route path="/" element={<CourseListPage />} />
         <Route path="/progress" element={<ProgressPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/account/password" element={<ChangePasswordPage />} />
         {/* CourseRoute loads the tree once for both the landing and lesson views. */}
         <Route path="/courses/:courseId" element={<CourseRoute />}>

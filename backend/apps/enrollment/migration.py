@@ -46,6 +46,7 @@ from django.utils import timezone
 from apps.bot_sim.models import SimSession
 from apps.catalog.models import Activity, ContentNode, CourseVersion
 from apps.manual_sim.models import QuizReview, SimCase
+from apps.notifications import events
 from apps.progress import services as progress
 from apps.progress.models import (
     ActivityAttempt,
@@ -605,7 +606,7 @@ def apply(
     assert target is not None
     if to_version_id is not None and to_version_id != target.pk:
         raise Conflict("A newer version was published since you looked. Open the preview again.")
-    return _execute(
+    result = _execute(
         locked,
         target,
         set(carry or ()),
@@ -614,3 +615,8 @@ def apply(
         now=now or timezone.now(),
         record=True,
     )
+    # Only here, never in the preview (which runs `_execute` and rolls back): tell the learner.
+    move = VersionMove.objects.filter(enrollment=locked).order_by("-id").first()
+    if move is not None:
+        events.moved(locked, move)
+    return result

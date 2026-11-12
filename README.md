@@ -188,6 +188,7 @@ backend/
   apps/bot_sim       AI practice tickets (scenarios, sessions, scoring, workers)
   apps/manual_sim    mentor-rated simulations (submissions, rubric ratings, deadlines, files)
   apps/enrollment    who is on which course/version, programs, the access rule, moving between versions
+  apps/notifications in-app notifications: the bell, event hooks, deadline and review reminders
   apps/media_pipeline  video upload, ffmpeg conversion, streaming
   apps/console       Admin Console API
   apps/audit         audit log
@@ -204,6 +205,7 @@ deploy/              nginx, systemd and backup notes for production
 * [docs/authoring-studio.md](docs/authoring-studio.md) — authoring and publishing
 * [docs/simbot.md](docs/simbot.md) — practice tickets (flow, scoring, operations, limits)
 * [docs/enrollment.md](docs/enrollment.md) — enrollment, programs, the access rule, moving learners between versions
+* [docs/notifications.md](docs/notifications.md) — the bell, what each person is told and when, the reminder sweep
 * [docs/scoring-open-questions.md](docs/scoring-open-questions.md) — what must be decided before the scoring roll-up (Module 8b) can be built
 * [docs/manual-simulation.md](docs/manual-simulation.md) — mentor-rated simulations
 * [docs/media-pipeline.md](docs/media-pipeline.md) — video upload and streaming
@@ -221,7 +223,8 @@ deploy/              nginx, systemd and backup notes for production
 | Mentor-rated simulations (rubric, deadlines, revisions, uploads) | done |
 | **Enrollment** (who is on which course, mentor assignment, version pinning, programs, move to newest version, which modules each learner gets) | done: [docs/enrollment.md](docs/enrollment.md). Learners see only courses they are enrolled on; work from a learner with no mentor goes to the shared pool |
 | Weighted scoring rollup, certificates, cohort dashboard | not started (waiting on scoring rules) |
-| Notifications (email/Slack), SSO | not started |
+| **Notifications** (bell and list, in-app) | done: [docs/notifications.md](docs/notifications.md). Email, Slack and per-person settings are not started |
+| SSO | not started |
 
 ## Troubleshooting
 

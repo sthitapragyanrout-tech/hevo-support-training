@@ -26,6 +26,7 @@ from django.utils import timezone
 from apps.activities import manual_sim as cfg
 from apps.activities import quiz
 from apps.catalog.models import Activity
+from apps.notifications import events
 from apps.progress import services as progress
 from apps.progress.models import ActivityAttempt, ActivityProgress
 
@@ -80,7 +81,7 @@ def submit(
     transaction, with the learner's progress row already locked, so two quick submits can't both
     get here."""
     mentor, routing = assignments.route_for(user, activity)
-    return QuizReview.objects.create(
+    review = QuizReview.objects.create(
         user=user,
         activity=activity,
         attempt_no=attempt_no,
@@ -93,6 +94,8 @@ def submit(
         assigned_mentor=mentor,
         routing=routing,
     )
+    events.work_waiting_quiz(review)
+    return review
 
 
 # ------------------------------------------------------- claiming, routing
@@ -143,6 +146,7 @@ def reassign(actor, review_id: int, mentor=None, *, now=None) -> QuizReview:
     review.claimed_by = None
     review.claimed_at = None
     review.save(update_fields=["assigned_mentor", "routing", "claimed_by", "claimed_at"])
+    events.work_reassigned("quiz", review)
     return review
 
 
@@ -259,4 +263,6 @@ def rate(rater, review_id: int, marks, comments=None, overall=None, *, now=None)
     # Passed or out of tries: the quiz is finished and the lesson settles. Failed with tries
     # left: it is something to do again, so a lesson that was complete "pending marks" reopens.
     progress.settle_lesson(learner, progress._lesson_of(activity), reopen=True)
+    events.work_done("quiz", review.pk)
+    events.quiz_marked(review, passed=passed, score=earned / possible if possible else 0.0)
     return review

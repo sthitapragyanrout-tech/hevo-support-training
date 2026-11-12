@@ -1,2 +1,2 @@
-Scaffolded when first needed (M3 escalations) — email now, Slack in V2.
-See docs/architecture.md §4 (Component breakdown) and §14.
+In-app notifications: the bell, the list, event hooks and the reminder sweep.
+See docs/notifications.md.

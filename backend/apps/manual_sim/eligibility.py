@@ -29,6 +29,13 @@ def raters() -> QuerySet:
     return user.objects.filter(is_active=True).filter(_by_role(RATE)).distinct()
 
 
+def managers() -> QuerySet:
+    """Active people who manage reviews through a role (trainers and admins): the ones who see
+    and may act on everything, and who are told when reviews or deadlines slip."""
+    user = get_user_model()
+    return user.objects.filter(is_active=True).filter(_by_role(MANAGE)).distinct()
+
+
 def someone_can_rate() -> bool:
     user = get_user_model()
     return (

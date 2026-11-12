@@ -122,6 +122,12 @@ Last updated: **All planned phases implemented and tested** — foundation + lea
 | `ModuleExclusion` | not registered | `enrollment.manage_enrollments` | **Modules** on an Enrollments row, and a module checklist when enrolling (one learner, or one choice for a whole pasted list); new modules are offered with a toggle in *Move to newest* | Replaced (no Django Admin equivalent existed) | `test_enrollment_modules.py`, `test_enrollment_modules_console.py`, `test_enrollment_modules_migration.py`, `test_enrollment_concurrency.py` (Postgres), `enrollment.test.tsx`, browser-verified | Per enrollment only: no Program-level defaults, no per-lesson choice. Attempt-based reports still include attempts from a module later switched off. |
 | `VersionMove` | not registered | — | Written by *Move to newest*; visible through the audit log (`enrollments.migrate`) | Replaced (audit only) | `test_enrollment_migration.py` | No dedicated history screen. |
 
+## notifications (new)
+
+| Model | Django Admin today | Permission | Console replacement | Status | Tests | Gaps |
+|---|---|---|---|---|---|---|
+| `Notification` | not registered | none (own rows only, signed in) | the header bell and `/notifications` | New (no Django Admin equivalent existed) | `test_notifications_core.py`, `test_notifications_events.py`, `test_notifications_sweeps.py`, `test_enrollment_concurrency.py` (Postgres), `notifications.test.tsx`, browser-verified | In-app only: no email, no preferences or mute. Not editable from the console; pruned automatically. See [notifications.md](notifications.md). |
+
 ## Capabilities introduced
 
 | Action | Granted to | Used for |

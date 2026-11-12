@@ -18,6 +18,13 @@
   border-bottom: 1px solid var(--border);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-left: auto;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;

@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/v1/sim/", include("apps.bot_sim.urls")),
     path("api/v1/rated-sims/", include("apps.manual_sim.urls")),
     path("api/v1/progress/", include("apps.progress.urls")),
+    path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/admin/", include("apps.console.urls")),
 ]
 

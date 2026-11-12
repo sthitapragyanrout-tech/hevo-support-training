@@ -356,6 +356,46 @@ export interface AttemptReport {
 
 const progress = (path: string) => `/api/v1/progress/${path}`
 
+/** One notification for the signed-in person: something changed, or something is waiting. */
+export interface AppNotification {
+  id: number
+  kind: string
+  title: string
+  body: string
+  /** An in-app path ("/courses/1"), or empty. */
+  link: string
+  created_at: string
+  read: boolean
+}
+
+export interface NotificationPage {
+  results: AppNotification[]
+  count: number
+  page: number
+  pages: number
+  unread_count: number
+}
+
+const notifications = (path: string) => `/api/v1/notifications/${path}`
+
+export const notificationsApi = {
+  list: (q: { unread?: boolean; page?: number; page_size?: number } = {}) => {
+    const params = new URLSearchParams()
+    if (q.unread) params.set('unread', '1')
+    if (q.page) params.set('page', String(q.page))
+    if (q.page_size) params.set('page_size', String(q.page_size))
+    const query = params.toString()
+    return request<NotificationPage>(notifications('') + (query ? `?${query}` : ''))
+  },
+  /** The light call the header bell polls. */
+  unreadCount: () => request<{ unread_count: number }>(notifications('unread-count/')),
+  read: (id: number) =>
+    request<AppNotification & { unread_count: number }>(notifications(`${id}/read/`), {
+      method: 'POST',
+    }),
+  readAll: () => request<{ unread_count: number }>(notifications('read-all/'), { method: 'POST' }),
+}
+
 export const progressApi = {
   summary: () => request<{ courses: ProgressCourse[] }>(progress('summary/')),
   course: (versionId: number | string) =>

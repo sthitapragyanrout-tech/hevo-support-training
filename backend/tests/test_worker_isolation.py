@@ -28,7 +28,12 @@ def test_every_task_goes_to_its_own_queue(tasks):
     assert sim and media
     assert {queue_of(t) for t in sim} == {"sim"}
     assert {queue_of(t) for t in media} == {"media"}
-    assert set(tasks) == set(sim) | set(media)  # nothing falls through to a default queue
+    # Notification reminders are small database jobs with no queue of their own: they take the
+    # default (the media worker's queue). Naming them here keeps that a decision, not an accident.
+    notifications = [t for t in tasks if t.startswith("notifications.")]
+    assert set(notifications) == {"notifications.sweep", "notifications.prune"}
+    assert {queue_of(t) for t in notifications} == {"media"}
+    assert set(tasks) == set(sim) | set(media) | set(notifications)  # nothing else falls through
 
 
 def test_the_scheduled_sweepers_use_the_right_queues():

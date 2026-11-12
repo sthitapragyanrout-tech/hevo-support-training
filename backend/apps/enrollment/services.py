@@ -32,6 +32,7 @@ from django.utils import timezone
 from apps.catalog.models import Course, CourseVersion
 from apps.manual_sim import assignments
 from apps.manual_sim.errors import SimError
+from apps.notifications import events
 
 from . import modules as modules_
 from .errors import Conflict, EnrollmentError, NotFound
@@ -149,6 +150,8 @@ def enroll(
             row.program = program
             row.save(update_fields=["program"])
 
+    if outcome in (ENROLLED, REACTIVATED):
+        events.enrolled(row, again=outcome == REACTIVATED)
     if mentor is not None:
         assignments.assign_mentor(user, course, mentor, by=by)
     return row, outcome

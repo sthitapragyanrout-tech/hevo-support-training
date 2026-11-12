@@ -18,6 +18,7 @@ from django.db import transaction
 
 from apps.accounts.models import User
 from apps.catalog.models import Activity, Course
+from apps.notifications import events
 
 from . import eligibility
 from .errors import BadInput
@@ -67,7 +68,9 @@ def assign_mentor(learner, course: Course, mentor, *, by=None, source: str = "en
         course=course,
         defaults={"mentor": mentor, "assigned_by": by, "source": source},
     )
-    reroute_open(learner, course)
+    moved = reroute_open(learner, course)
+    if moved:
+        events.work_assigned(mentor, moved)
     return row
 
 

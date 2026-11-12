@@ -22,15 +22,19 @@ interface Props {
 export function Popover({ trigger, children, align = 'start', width = 280, label }: Props) {
   const [open, setOpen] = useState(false)
   const [up, setUp] = useState(false)
+  const [shift, setShift] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
   const id = useId()
   const root = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
 
-  // Flip above the trigger when the panel would run off the bottom of the screen.
+  // Flip above the trigger when the panel would run off the bottom of the screen, and slide it
+  // back inside the screen when its anchor sits so far from an edge that it would be cut off
+  // (a bell in the middle of a phone-width header, say).
   useLayoutEffect(() => {
     if (!open) {
       setUp(false)
+      setShift(0)
       return
     }
     const panel = panelRef.current
@@ -40,6 +44,10 @@ export function Popover({ trigger, children, align = 'start', width = 280, label
     const below = window.innerHeight - anchor.getBoundingClientRect().bottom
     const above = anchor.getBoundingClientRect().top
     setUp(below < need && above > below)
+    const box = panel.getBoundingClientRect()
+    const edge = 8
+    if (box.left < edge) setShift(edge - box.left)
+    else if (box.right > window.innerWidth - edge) setShift(window.innerWidth - edge - box.right)
   }, [open])
 
   useEffect(() => {
@@ -80,7 +88,7 @@ export function Popover({ trigger, children, align = 'start', width = 280, label
           role="dialog"
           aria-label={label}
           className={`${styles.panel} ${align === 'end' ? styles.end : ''} ${up ? styles.up : ''}`}
-          style={{ width }}
+          style={{ width, translate: shift ? `${shift}px 0` : undefined }}
         >
           {children(() => setOpen(false))}
         </div>

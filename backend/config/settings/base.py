@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "apps.bot_sim",
     "apps.manual_sim",
     "apps.enrollment",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -165,6 +166,8 @@ REST_FRAMEWORK = {
         "sim_reply": "20/min",
         "sim_poll": "120/min",
         "manual_sim_submit": "20/hour",
+        # The header bell polls once a minute; a list or a click is rarer.
+        "notifications": "120/min",
     },
 }
 
@@ -249,6 +252,13 @@ CELERY_BEAT_SCHEDULE = {
     "sim-top-up": {
         "task": "bot_sim.top_up",
         "schedule": crontab(hour=SIMBOT_TOPUP_HOUR, minute=SIMBOT_TOPUP_MINUTE),
+    },
+    # Reminders and housekeeping for notifications. Cheap database jobs, safe to repeat; they run
+    # on the default queue (see CELERY_TASK_DEFAULT_QUEUE).
+    "notifications-sweep": {"task": "notifications.sweep", "schedule": 900.0},
+    "notifications-prune": {
+        "task": "notifications.prune",
+        "schedule": crontab(hour=3, minute=30),
     },
 }
 

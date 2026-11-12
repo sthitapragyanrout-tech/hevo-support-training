@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { StageStepper } from '../features/studio/StageStepper'
 import { Dialog } from './Dialog'
@@ -108,6 +108,65 @@ describe('Popover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
     fireEvent.click(screen.getByRole('button', { name: 'Item' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+  describe('keeping the panel on screen', () => {
+    /** jsdom has no layout, so say where the panel would land. */
+    function placePanel(left: number, right: number) {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const isPanel = this.getAttribute('role') === 'dialog'
+        return {
+          left: isPanel ? left : 0,
+          right: isPanel ? right : 0,
+          top: 0,
+          bottom: 0,
+          width: isPanel ? right - left : 0,
+          height: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        } as DOMRect
+      })
+    }
+    afterEach(() => vi.restoreAllMocks())
+
+    it('slides a panel that would be cut off on the left back inside the screen', () => {
+      vi.stubGlobal('innerWidth', 375)
+      placePanel(-48, 295)
+      render(<PopoverHarness />)
+      fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
+      expect(screen.getByRole('dialog', { name: 'Things' })).toHaveStyle({ translate: '56px 0' })
+    })
+
+    it('slides a panel that would be cut off on the right back inside the screen', () => {
+      vi.stubGlobal('innerWidth', 375)
+      placePanel(60, 400)
+      render(<PopoverHarness />)
+      fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
+      expect(screen.getByRole('dialog', { name: 'Things' })).toHaveStyle({ translate: '-33px 0' })
+    })
+
+    it('leaves a panel that already fits where it is', () => {
+      vi.stubGlobal('innerWidth', 375)
+      placePanel(20, 300)
+      render(<PopoverHarness />)
+      fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
+      expect(screen.getByRole('dialog', { name: 'Things' }).style.translate).toBe('')
+    })
+
+    it('forgets the shift when it closes, so the next opening starts from where it fits', () => {
+      vi.stubGlobal('innerWidth', 375)
+      placePanel(-48, 295)
+      render(<PopoverHarness />)
+      fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
+      expect(screen.getByRole('dialog', { name: 'Things' })).toHaveStyle({ translate: '56px 0' })
+      fireEvent.click(screen.getByRole('button', { name: 'Item' }))
+      vi.restoreAllMocks()
+      placePanel(20, 300)
+      fireEvent.click(screen.getByRole('button', { name: 'Menu' }))
+      expect(screen.getByRole('dialog', { name: 'Things' }).style.translate).toBe('')
+    })
   })
 })
 
