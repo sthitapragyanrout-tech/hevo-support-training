@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-6);
-  max-width: 1040px;
-  padding: var(--sp-8) var(--sp-8) var(--sp-16);
+  max-width: 1360px;
+  padding: var(--sp-10) var(--page-pad) var(--sp-20);
 }
 
 .header {
@@ -15,13 +15,14 @@
 
 .header h1 {
   margin-top: var(--sp-1);
-  font-size: var(--fs-28);
-  letter-spacing: -0.02em;
+  font-size: var(--fs-34);
+  letter-spacing: -0.03em;
 }
 
 .hint {
-  margin-top: var(--sp-1);
-  font-size: var(--fs-14);
+  margin-top: var(--sp-2);
+  max-width: 62ch;
+  font-size: var(--fs-15);
   color: var(--text-muted);
 }
 
@@ -55,7 +56,7 @@
 
 @media (max-width: 899px) {
   .page {
-    padding: var(--sp-6) var(--sp-4) var(--sp-12);
+    padding: var(--sp-6) var(--page-pad) var(--sp-12);
   }
 
   .header {

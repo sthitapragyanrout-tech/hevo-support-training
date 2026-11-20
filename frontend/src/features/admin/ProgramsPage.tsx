@@ -29,7 +29,7 @@ export function ProgramsPage() {
   const columns: Column<ProgramRow>[] = [
     {
       key: 'name',
-      header: 'Program',
+      header: 'Group',
       render: (p) => (
         <span className={styles.person}>
           <strong>{p.name}</strong>
@@ -122,11 +122,11 @@ export function ProgramsPage() {
   return (
     <AdminPage
       eyebrow="People"
-      title="Programs"
-      hint="A program is a named, ordered set of courses, so a whole cohort can be enrolled in one step."
+      title="Groups"
+      hint="A group (such as L1 or L2) is a named, ordered set of courses: enroll a whole group in one step, and see results by group on the Dashboard."
       actions={
         <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>
-          New program
+          New group
         </button>
       }
     >
@@ -137,25 +137,25 @@ export function ProgramsPage() {
       )}
       <label className={styles.inline} style={{ marginBottom: 'var(--sp-3)' }}>
         <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
-        Show archived programs
+        Show archived groups
       </label>
       {programs.loading ? (
         <PageState kind="loading" />
       ) : programs.error || !programs.data ? (
-        <PageState kind="error" title="Couldn’t load programs" onRetry={programs.reload}>
+        <PageState kind="error" title="Couldn’t load groups" onRetry={programs.reload}>
           {programs.error}
         </PageState>
       ) : (
         <DataTable
-          label="Programs"
+          label="Groups"
           columns={columns}
           rows={programs.data.results}
           rowKey={(p) => p.id}
           busy={programs.refreshing}
           empty={
             archived
-              ? 'No archived programs.'
-              : 'No programs yet. Create one to enroll a cohort at once.'
+              ? 'No archived groups.'
+              : 'No groups yet. Create one (for example L1) to enroll people together.'
           }
         />
       )}

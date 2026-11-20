@@ -14,7 +14,7 @@
   padding: var(--sp-2);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-pop);
   animation: pop 120ms ease-out;
 }

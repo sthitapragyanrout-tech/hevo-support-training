@@ -1,4 +1,4 @@
-import { request, type TrainerSimResult } from '../../lib/api'
+import { request, type ProgressCourse, type TrainerSimResult } from '../../lib/api'
 
 export interface Paged<T> {
   results: T[]
@@ -57,6 +57,7 @@ export interface LearnerActivity {
   title: string
   type: string
   lesson: string
+  lesson_id: number
   required: boolean
   state: ActivityStatus
   scored: boolean
@@ -101,6 +102,7 @@ export interface LearnerActivity {
 
 export interface LearnerCourse {
   course_id: number
+  version_id: number
   title: string
   version: number
   state: string
@@ -109,12 +111,94 @@ export interface LearnerCourse {
   activities: LearnerActivity[]
 }
 
+export interface CertificateInfo {
+  id: number
+  code: string
+  issued_at: string
+  /** 0–1; null when the course had no scored work (finishing it earned the certificate). */
+  score: number | null
+}
+
+export interface CertificationPart {
+  average: number | null
+  scored: number
+  items: number
+  weight: number
+}
+
+export type CertificationStanding =
+  | { enabled: false; certificate: CertificateInfo | null }
+  | {
+      enabled: true
+      threshold: number
+      score: number | null
+      missing: ('quiz' | 'practice' | 'rated')[]
+      parts?: Record<'quiz' | 'practice' | 'rated', CertificationPart>
+      eligible: boolean
+      certificate: CertificateInfo | null
+    }
+
+/** One course a learner is on now, at the version they are pinned to (staff copy). */
+export interface EnrolledCourse extends Omit<ProgressCourse, 'rated' | 'certification'> {
+  enrollment_id: number
+  version: number
+  group: { id: number; name: string } | null
+  quiz_score: number | null
+  required_lessons_left: number
+  rated: (ProgressCourse['rated'][number] & { last_score: number | null })[]
+  certification: CertificationStanding
+}
+
 export interface LearnerDetail {
   id: number
   name: string
   email: string
   employee_id: string | null
+  /** Every version they have touched, with each activity in detail. */
   courses: LearnerCourse[]
+  /** The courses they are enrolled on now. */
+  enrolled: EnrolledCourse[]
+  /** Every certificate they have held, revoked ones included. */
+  certificates: CertificatePage[]
+}
+
+export interface DashboardRow {
+  enrollment_id: number
+  user_id: number
+  name: string
+  email: string
+  employee_id: string | null
+  course: { id: number; title: string }
+  group: { id: number; name: string } | null
+  lessons_done: number
+  lessons_total: number
+  progress: number
+  quiz_score: number | null
+  course_score: number | null
+  certificate_on: boolean
+  threshold: number | null
+  certificate: CertificateInfo | null
+  last_activity: string | null
+}
+
+export interface DashboardPage extends Paged<DashboardRow> {
+  totals: { learners: number; enrollments: number; certificates: number; courses: number }
+  groups: { id: number; name: string }[]
+}
+
+export interface CertificatePage {
+  code: string
+  name: string
+  employee_id: string | null
+  course_title: string
+  course_id: number
+  issued_at: string
+  score: number | null
+  threshold: number
+  revoked: boolean
+  id?: number
+  revoked_at?: string | null
+  revoked_reason?: string
 }
 
 export interface QuizRow {
@@ -840,6 +924,13 @@ const send = (method: string, body?: unknown): RequestInit => ({
 export const adminApi = {
   courses: () => request<{ results: CourseOption[] }>(admin('results/courses/')),
   learners: (q: Query) => request<Paged<LearnerRow>>(admin('results/learners/', q)),
+  dashboard: (q: Query) => request<DashboardPage>(admin('results/dashboard/', q)),
+  /** A plain link: the browser downloads the CSV with the session cookie. */
+  dashboardCsvUrl: (q: Query) => admin('results/dashboard/', { ...q, export: 'csv', page: '' }),
+  revokeCertificate: (id: number, reason: string) =>
+    request<CertificatePage>(admin(`certificates/${id}/revoke/`), send('POST', { reason })),
+  restoreCertificate: (id: number) =>
+    request<CertificatePage>(admin(`certificates/${id}/restore/`), send('POST')),
   learner: (id: number | string) => request<LearnerDetail>(admin(`results/learners/${id}/`)),
   resetAttempts: (learnerId: number, activityId: number) =>
     request<void>(admin(`results/learners/${learnerId}/activities/${activityId}/attempts/`), {
@@ -975,6 +1066,11 @@ export const adminApi = {
     request<EnrollmentRow>(
       admin(`enrollments/${id}/mentor/`),
       send('POST', { mentor_id: mentorId }),
+    ),
+  setGroup: (id: number, programId: number | null) =>
+    request<EnrollmentRow>(
+      admin(`enrollments/${id}/group/`),
+      send('POST', { program_id: programId }),
     ),
   enrollmentModules: (id: number) =>
     request<EnrollmentModules>(admin(`enrollments/${id}/modules/`)),

@@ -174,7 +174,7 @@ def _target(body: dict[str, Any]) -> tuple[Course | None, Program | None]:
     course_id = _int(body, "course_id", required=False)
     program_id = _int(body, "program_id", required=False)
     if (course_id is None) == (program_id is None):
-        raise ConsoleError("Choose a course or a program to enroll them on.")
+        raise ConsoleError("Choose a course or a group to enroll them on.")
     if course_id is not None:
         return get_object_or_404(Course, pk=course_id), None
     return None, get_object_or_404(Program, pk=program_id)
@@ -337,7 +337,7 @@ class EnrollmentListView(_View):
         module_ids = _module_ids(body)
         if module_ids is not None and program is not None:
             raise ConsoleError(
-                "Choosing modules works for one course at a time. Enroll the program with "
+                "Choosing modules works for one course at a time. Enroll the group with "
                 "every module, then trim individual learners."
             )
         if module_ids is not None and course is not None:
@@ -510,6 +510,26 @@ class MentorView(_View):
                 "from": _name(before) if before else "shared pool",
                 "to": _name(mentor) if mentor else "shared pool",
             },
+        )
+        return Response(_one(row.pk))
+
+
+class GroupView(_View):
+    """Set or clear the group (program) an enrollment counts under: `{"program_id": id|null}`."""
+
+    def post(self, request: Request, pk: int) -> Response:
+        row = _enrollment(pk)
+        program_id = _int(_body(request), "program_id", required=False)
+        program = None if program_id is None else get_object_or_404(Program, pk=program_id)
+        before = row.program.name if row.program else None
+        services.set_group(row, program)
+        audit.record(
+            request,
+            "enrollments.group",
+            target_type="enrollment",
+            target_id=row.pk,
+            target_label=_label(row),
+            changes={"from": before or "no group", "to": program.name if program else "no group"},
         )
         return Response(_one(row.pk))
 

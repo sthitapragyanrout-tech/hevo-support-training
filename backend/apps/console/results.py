@@ -13,7 +13,10 @@ from rest_framework.response import Response
 
 from apps.audit import services as audit
 from apps.catalog.models import Activity
-from apps.progress import reporting, services
+from apps.certification import services as cert_services
+from apps.certification.models import Certificate
+from apps.enrollment.models import Program
+from apps.progress import dashboard, reporting, services, summary
 
 from .base import ConsoleError, ConsoleView, optional_int, paginate
 
@@ -54,7 +57,24 @@ class LearnerDetailView(ConsoleView):
 
     def get(self, request: Request, user_id: int) -> Response:
         user = get_object_or_404(User, pk=user_id)
-        return Response(reporting.learner_detail(user))
+        detail = reporting.learner_detail(user)
+        # The courses they are on now, each at the version they are pinned to, with the same
+        # summary as their own My progress page (plus what only staff see: mentor scores and the
+        # breakdown of the course score).
+        enrolled = []
+        for e in dashboard.enrollments().filter(user=user).order_by("-enrolled_at", "-id"):
+            course = summary.course_summary(user, e)
+            course["group"] = {"id": e.program.pk, "name": e.program.name} if e.program else None
+            course["version"] = e.version.version
+            course["quiz_score"] = dashboard.quiz_score(course)
+            enrolled.append(course)
+        detail["enrolled"] = enrolled
+        # Every certificate they have held, revoked ones included (so one can be restored).
+        detail["certificates"] = [
+            cert_services.page_payload(c, staff=True)
+            for c in Certificate.objects.filter(user=user).select_related("user", "version")
+        ]
+        return Response(detail)
 
 
 class ResetAttemptsView(ConsoleView):
@@ -78,6 +98,101 @@ class ResetAttemptsView(ConsoleView):
             changes={"learner": learner.email, **removed},
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DashboardView(ConsoleView):
+    """One row per active enrollment, sortable by progress, quiz score, course score, ...
+    `?export=csv` downloads the same rows (logged, like every export)."""
+
+    required_action = VIEW_RESULTS
+
+    CSV_HEADER = [
+        "Name",
+        "Email",
+        "Employee id",
+        "Course",
+        "Group",
+        "Lessons done",
+        "Lessons total",
+        "Progress %",
+        "Quiz score %",
+        "Course score %",
+        "Pass mark %",
+        "Certificate",
+        "Certificate issued",
+        "Last activity",
+    ]
+
+    def get(self, request: Request):
+        params = request.query_params
+        group = params.get("group", "")
+        try:
+            found = dashboard.rows(
+                search=params.get("search", "").strip(),
+                course_id=optional_int(params.get("course")),
+                group_id=optional_int(group) if group != "none" else None,
+                no_group=group == "none",
+                certified=params.get("certified", ""),
+                ordering=params.get("ordering", "name"),
+            )
+        except dashboard.TooMany:
+            raise ConsoleError(
+                f"More than {dashboard.MAX_ROWS} enrollments match. Choose a course or a group."
+            ) from None
+        if params.get("export") == "csv":
+            return self._csv(request, found)
+        page, meta = paginate(request, found)
+        return Response(
+            {
+                "results": page,
+                **meta,
+                "totals": dashboard.totals(found),
+                # The group filter's options (anyone who may see results may see these names).
+                "groups": [
+                    {"id": pk, "name": name}
+                    for pk, name in Program.objects.filter(archived_at__isnull=True)
+                    .order_by("name")
+                    .values_list("pk", "name")
+                ],
+            }
+        )
+
+    def _csv(self, request: Request, found) -> StreamingHttpResponse:
+        audit.record(
+            request,
+            "results.dashboard_export",
+            target_type="dashboard",
+            target_label="Dashboard",
+            changes={"rows": len(found)},
+        )
+
+        def pct(value):
+            return "" if value is None else round(value * 100, 1)
+
+        lines = [
+            [
+                r["name"],
+                r["email"],
+                r["employee_id"] or "",
+                r["course"]["title"],
+                r["group"]["name"] if r["group"] else "",
+                r["lessons_done"],
+                r["lessons_total"],
+                pct(r["progress"]),
+                pct(r["quiz_score"]),
+                pct(r["course_score"]),
+                r["threshold"] if r["certificate_on"] else "",
+                r["certificate"]["code"] if r["certificate"] else "",
+                r["certificate"]["issued_at"] if r["certificate"] else "",
+                r["last_activity"] or "",
+            ]
+            for r in found
+        ]
+        writer = csv.writer(_Echo())
+        stream = (writer.writerow(line) for line in [self.CSV_HEADER, *lines])
+        response = StreamingHttpResponse(stream, content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="dashboard.csv"'
+        return response
 
 
 class QuizListView(ConsoleView):

@@ -481,6 +481,7 @@ describe('Learning order setting', () => {
     const calls = mockApi(PUBLISHER, {
       [`GET ${BASE}/courses/1/`]: () => ({ body: c }),
       [`GET ${BASE}/activity-types/`]: () => ({ body: TYPES }),
+      [`GET ${BASE}/courses/1/certificate/`]: () => ({ body: POLICY }),
       ...extra,
     })
     renderAt('/studio/courses/1/settings')
@@ -525,6 +526,68 @@ describe('Learning order setting', () => {
     fireEvent.click(await screen.findByRole('radio', { name: /Learners go in order/ }))
     expect(await screen.findByRole('alert')).toHaveTextContent('This course is in review.')
     expect(screen.getByRole('radio', { name: /Learners can open any lesson/ })).toBeChecked()
+  })
+})
+
+const POLICY = {
+  enabled: false,
+  threshold: 70,
+  weights: { quiz: 1, practice: 1, rated: 1 },
+  updated_at: null,
+}
+
+describe('Certificate setting', () => {
+  const open = (extra: Record<string, (call: Call) => { status?: number; body?: unknown }> = {}) => {
+    const calls = mockApi(PUBLISHER, {
+      [`GET ${BASE}/courses/1/`]: () => ({ body: course() }),
+      [`GET ${BASE}/activity-types/`]: () => ({ body: TYPES }),
+      [`GET ${BASE}/courses/1/certificate/`]: () => ({ body: POLICY }),
+      ...extra,
+    })
+    renderAt('/studio/courses/1/settings')
+    return calls
+  }
+
+  it('is off by default, with the threshold and weights shown but not editable', async () => {
+    open()
+    const toggle = await screen.findByRole('checkbox', { name: /earn a certificate/ })
+    expect(toggle).not.toBeChecked()
+    expect(screen.getByLabelText('Passing threshold (%)')).toBeDisabled()
+    expect(screen.getByLabelText('Weight for quizzes')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save certificate settings' })).toBeDisabled()
+  })
+
+  it('switches it on with a threshold and weights, and says everyone is checked again', async () => {
+    const calls = open({
+      [`PUT ${BASE}/courses/1/certificate/`]: (call) => ({
+        body: { ...POLICY, ...(call.body as object), updated_at: '2026-11-21T10:00:00Z' },
+      }),
+    })
+    fireEvent.click(await screen.findByRole('checkbox', { name: /earn a certificate/ }))
+    fireEvent.change(screen.getByLabelText('Passing threshold (%)'), { target: { value: '80' } })
+    fireEvent.change(screen.getByLabelText('Weight for quizzes'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Weight for mentor-rated work'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save certificate settings' }))
+    expect(await screen.findByText(/Everyone on the course is checked again/)).toBeInTheDocument()
+    const put = calls.find((c) => c.method === 'PUT')!
+    expect(put.body).toEqual({
+      enabled: true,
+      threshold: 80,
+      weights: { quiz: 2, practice: 1, rated: 0 },
+    })
+  })
+
+  it('shows the server’s reason when a value is refused', async () => {
+    open({
+      [`PUT ${BASE}/courses/1/certificate/`]: () => ({
+        status: 400,
+        body: { detail: 'The passing threshold must be between 1 and 100.' },
+      }),
+    })
+    fireEvent.click(await screen.findByRole('checkbox', { name: /earn a certificate/ }))
+    fireEvent.change(screen.getByLabelText('Passing threshold (%)'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save certificate settings' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('between 1 and 100')
   })
 })
 

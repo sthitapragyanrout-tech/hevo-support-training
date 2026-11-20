@@ -81,14 +81,14 @@
 
 /* Landing row: title + one-line summary, type + minutes at the right. */
 .detailed {
-  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
   border-left-width: 0;
-  border-radius: var(--radius);
+  border-radius: 0;
 }
 
 .detailed .title {
-  font-size: var(--fs-15);
-  font-weight: 500;
+  font-size: var(--fs-16);
+  font-weight: 600;
   color: var(--text);
 }
 

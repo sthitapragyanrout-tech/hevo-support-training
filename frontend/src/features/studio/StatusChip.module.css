@@ -21,7 +21,7 @@
 .published,
 .published_with_draft {
   color: var(--success);
-  background: #ecf7f0;
+  background: var(--success-tint);
 }
 
 .published .dot,

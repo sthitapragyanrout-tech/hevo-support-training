@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { hoursText } from './format'
 import { estimate } from './ratingMath'
-import { mockApi, page, renderAt } from './testHelpers'
+import { mockApi, page, renderAt, enrolledCourse } from './testHelpers'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -508,9 +508,12 @@ describe('A trainer’s view of a learner’s mentor-rated work', () => {
     name: 'Lea Learner',
     email: 'lea@e.com',
     employee_id: null,
+    enrolled: [enrolledCourse(1, 10, 'Support basics')],
+    certificates: [],
     courses: [
       {
         course_id: 1,
+        version_id: 10,
         title: 'Support basics',
         version: 1,
         state: 'published',

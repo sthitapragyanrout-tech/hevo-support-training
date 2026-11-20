@@ -1,0 +1,130 @@
+.wrap {
+  padding-block: var(--sp-8) var(--sp-16);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.revoked {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+}
+
+/* An A4 landscape-ish sheet: typographic, a hairline frame, no seals or ribbons. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: clamp(var(--sp-8), 6vw, var(--sp-16)) clamp(var(--sp-5), 6vw, var(--sp-16));
+  text-align: center;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  outline: 1px solid var(--border);
+  outline-offset: -12px;
+  border-radius: 4px;
+  box-shadow: var(--shadow-2);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.kicker {
+  margin-top: var(--sp-8);
+  font-size: var(--fs-13);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.presented {
+  margin-top: var(--sp-6);
+  color: var(--text-muted);
+}
+
+.name {
+  margin-top: var(--sp-2);
+  font-size: clamp(var(--fs-34), 5vw, var(--fs-60));
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.emp {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+}
+
+.course {
+  margin-top: var(--sp-2);
+  font-size: clamp(var(--fs-22), 3vw, var(--fs-34));
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-4);
+  width: 100%;
+  margin: var(--sp-10) 0 0;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--border);
+}
+
+.facts dt {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-15);
+}
+
+.code {
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+}
+
+/* Print only the sheet, full width, no app chrome or shadows. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  :global(body) * {
+    visibility: hidden;
+  }
+
+  .sheet,
+  .sheet * {
+    visibility: visible;
+  }
+
+  .sheet {
+    position: absolute;
+    inset: 0;
+    max-width: none;
+    box-shadow: none;
+  }
+}

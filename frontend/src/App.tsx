@@ -1,6 +1,7 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './app/AppShell'
+import { PageState } from './components/PageState'
 import { ProtectedRoute } from './app/ProtectedRoute'
 import { LoginPage } from './features/auth/LoginPage'
 import { CourseLandingPage } from './features/catalog/CourseLandingPage'
@@ -16,12 +17,12 @@ import { CoursesPage } from './features/admin/CoursesPage'
 import { LearnerDetailPage } from './features/admin/LearnerDetailPage'
 import { DashboardPage } from './features/admin/DashboardPage'
 import { EnrollmentsPage } from './features/admin/EnrollmentsPage'
-import { LearnersPage } from './features/admin/LearnersPage'
 import { PracticeScenariosPage } from './features/admin/PracticeScenariosPage'
 import { ProgramsPage } from './features/admin/ProgramsPage'
 import { QuizReviewPage } from './features/admin/QuizReviewPage'
 import { RatingPage } from './features/admin/RatingPage'
 import { ProgressPage } from './features/catalog/ProgressPage'
+import { CertificatePage } from './features/certificates/CertificatePage'
 import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { RatingsPage } from './features/admin/RatingsPage'
 import { QuizDetailPage } from './features/admin/QuizDetailPage'
@@ -69,6 +70,7 @@ function App() {
         <Route path="/" element={<CourseListPage />} />
         <Route path="/progress" element={<ProgressPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/certificates/:code" element={<CertificatePage />} />
         <Route path="/account/password" element={<ChangePasswordPage />} />
         {/* CourseRoute loads the tree once for both the landing and lesson views. */}
         <Route path="/courses/:courseId" element={<CourseRoute />}>
@@ -96,9 +98,10 @@ function App() {
               </RequireCapability>
             }
           >
-            <Route index element={<Navigate to="learners" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="learners" element={<LearnersPage />} />
+            {/* The Dashboard replaced the old Learners list. */}
+            <Route path="learners" element={<Navigate to="/admin/results/dashboard" replace />} />
             <Route path="learners/:userId" element={<LearnerDetailPage />} />
             <Route path="quizzes" element={<QuizzesPage />} />
             <Route path="quizzes/:activityId" element={<QuizDetailPage />} />
@@ -221,8 +224,19 @@ function App() {
             </Route>
           </Route>
         </Route>
+
+        {/* Anything else: say so, instead of leaving the page blank. */}
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+  )
+}
+
+function NotFound() {
+  return (
+    <PageState kind="empty" title="We can’t find that page">
+      It may have moved, or the link may be wrong. <Link to="/">Back to My courses</Link>
+    </PageState>
   )
 }
 

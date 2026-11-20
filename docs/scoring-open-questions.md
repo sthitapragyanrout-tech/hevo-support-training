@@ -1,6 +1,11 @@
 # Scoring and results: what to settle before Module 8b
 
-**Status: nothing here is built, on purpose.** Module 8b (a weighted roll-up, certificates, the
+**Status (updated 2026-11-21):** an *interim* course score and certificates now exist (see
+[certificates.md](certificates.md)): per-kind averages combined by per-course weights, and a per-course pass mark, all editable
+data. The questions below still decide the final rule; answering them means changing
+`apps/certification/scoring.py`, not the data model.
+
+**Original status: nothing here was built, on purpose.** Module 8b (a weighted roll-up, certificates, the
 verify page, cohort exports and the admin dashboard) depends on rules that belong to the business, not
 to the code: how results combine, what "passing" a program means, and who sees which number. Building
 it on guesses would mean rebuilding it. This page lists the questions, the realistic options, what we

@@ -173,7 +173,7 @@ def check_complete(config: Any) -> list[str]:
 
     pk = asset_id(config)
     if pk is None:
-        return ["Upload a video."]
+        return ["Paste a YouTube or Google Drive link, or upload a video."]
     asset = MediaAsset.objects.filter(pk=pk).first()
     if asset is None:
         return ["The uploaded video can’t be found. Upload it again."]

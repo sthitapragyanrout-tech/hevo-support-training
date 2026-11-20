@@ -7,6 +7,7 @@ import { adminApi, type EnrollmentRow } from './adminApi'
 import { BulkEnrollDialog } from './BulkEnrollDialog'
 import { EnrollDialog } from './EnrollDialog'
 import { formatWhen } from './format'
+import { GroupDialog } from './GroupDialog'
 import { MentorDialog } from './MentorDialog'
 import { ModulesDialog } from './ModulesDialog'
 import { MoveDialog } from './MoveDialog'
@@ -18,7 +19,7 @@ import page from './enrollment.module.css'
 type Open =
   | { kind: 'enroll' }
   | { kind: 'bulk' }
-  | { kind: 'mentor' | 'modules' | 'withdraw' | 'move'; row: EnrollmentRow }
+  | { kind: 'mentor' | 'group' | 'modules' | 'withdraw' | 'move'; row: EnrollmentRow }
   | null
 
 export function EnrollmentsPage() {
@@ -88,7 +89,7 @@ export function EnrollmentsPage() {
               {e.modules.enabled} of {e.modules.total} modules
             </span>
           )}
-          {e.program && <span className={styles.sub}>Program: {e.program.name}</span>}
+          {e.program && <span className={styles.sub}>Group: {e.program.name}</span>}
         </span>
       ),
     },
@@ -119,6 +120,13 @@ export function EnrollmentsPage() {
                 onClick={() => setOpen({ kind: 'mentor', row: e })}
               >
                 Mentor
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setOpen({ kind: 'group', row: e })}
+              >
+                Group
               </button>
               {e.modules.total > 1 && (
                 <button
@@ -211,14 +219,14 @@ export function EnrollmentsPage() {
         </select>
         <select
           className="input"
-          aria-label="Program"
+          aria-label="Group"
           value={program}
           onChange={(e) => {
             setProgram(e.target.value)
             setPageNo(1)
           }}
         >
-          <option value="">Any program</option>
+          <option value="">Any group</option>
           {options.data?.programs.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -284,6 +292,14 @@ export function EnrollmentsPage() {
         <MentorDialog
           row={open.row}
           mentors={options.data.mentors}
+          onClose={() => setOpen(null)}
+          onDone={done}
+        />
+      )}
+      {open?.kind === 'group' && options.data && (
+        <GroupDialog
+          row={open.row}
+          groups={options.data.programs}
           onClose={() => setOpen(null)}
           onDone={done}
         />

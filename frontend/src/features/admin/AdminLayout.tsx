@@ -25,7 +25,6 @@ export function AdminLayout() {
       title: 'Results',
       items: [
         { to: '/admin/results/dashboard', label: 'Dashboard', allowed: canResults },
-        { to: '/admin/results/learners', label: 'Learners', allowed: canResults },
         { to: '/admin/results/quizzes', label: 'Quizzes', allowed: canResults },
       ],
     },
@@ -45,7 +44,7 @@ export function AdminLayout() {
       items: [
         { to: '/admin/users', label: 'Users', allowed: canUsers },
         { to: '/admin/enrollments', label: 'Enrollments', allowed: canEnroll },
-        { to: '/admin/programs', label: 'Programs', allowed: canEnroll },
+        { to: '/admin/programs', label: 'Groups', allowed: canEnroll },
         { to: '/admin/roles', label: 'Roles', allowed: canRoles },
         { to: '/admin/signins', label: 'Sign-ins', allowed: canUsers },
       ],
@@ -94,7 +93,7 @@ export function AdminIndex() {
   const canRoles = useCan(CAN.manageRoles)
   const canReview = useCanAny([CAN.rateSimulations, CAN.manageReviews])
   const canEnroll = useCan(CAN.manageEnrollments)
-  if (canResults) return <Navigate to="/admin/results/learners" replace />
+  if (canResults) return <Navigate to="/admin/results/dashboard" replace />
   if (canUsers) return <Navigate to="/admin/users" replace />
   if (canRoles) return <Navigate to="/admin/roles" replace />
   if (canAudit) return <Navigate to="/admin/audit" replace />

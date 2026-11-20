@@ -32,7 +32,7 @@ export function AppShell() {
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <header className={styles.header}>
+        <header className={`ink ${styles.header}`}>
           <Link to="/" className={styles.brand} aria-label="Hevo Support Training — home">
             <Logo size={26} />
             <span className={styles.name}>

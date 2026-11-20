@@ -11,8 +11,10 @@
 
 .scroll {
   overflow-x: auto;
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
 }
 
 .table {
@@ -22,10 +24,10 @@
 }
 
 .table th {
-  padding: 10px var(--sp-4);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  padding: 12px var(--sp-4);
+  font-size: var(--fs-11);
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-align: left;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -35,7 +37,7 @@
 }
 
 .table td {
-  padding: 12px var(--sp-4);
+  padding: 14px var(--sp-4);
   color: var(--text-body);
   vertical-align: middle;
 }
@@ -45,7 +47,7 @@
 }
 
 .table tbody tr:hover td {
-  background: var(--surface);
+  background: color-mix(in srgb, var(--accent-tint), transparent 40%);
 }
 
 .end {
@@ -68,6 +70,20 @@
 
 .sort:hover {
   color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sortActive {
+  color: var(--text);
+}
+
+.sortIdle {
+  opacity: 0.45;
+}
+
+.sort:hover .sortIdle {
+  opacity: 1;
 }
 
 .link {
@@ -101,8 +117,9 @@
   padding: var(--sp-12) var(--sp-4);
   text-align: center;
   color: var(--text-muted);
+  background: var(--bg);
   border: 1px dashed var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
 }
 
 @media (max-width: 599px) {

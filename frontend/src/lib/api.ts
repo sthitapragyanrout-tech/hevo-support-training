@@ -306,9 +306,72 @@ export interface ProgressCourse {
   /** Lessons moved past while written answers or work wait to be marked. */
   lessons_awaiting_review: number
   next_lesson: { id: number; title: string } | null
+  /** The course's modules in order (switched-off and empty ones left out). */
+  modules: ProgressModule[]
   quizzes: ProgressQuiz[]
   practice: ProgressTicket[]
   rated: ProgressRated[]
+  certification: ProgressCertification
+}
+
+/** Where the learner stands against the course's certificate. */
+export type ProgressCertification =
+  | { enabled: false; certificate: ProgressCertificate | null }
+  | {
+      enabled: true
+      /** Whole percent. */
+      threshold: number
+      /** The course score so far, 0–1; null until something counted has a score. */
+      score: number | null
+      /** Kinds of work that count but have no result yet. */
+      missing: ('quiz' | 'practice' | 'rated')[]
+      eligible: boolean
+      certificate: ProgressCertificate | null
+    }
+
+/** The certificate page: what is printed on it. */
+export interface CertificateView {
+  code: string
+  name: string
+  employee_id: string | null
+  course_title: string
+  course_id: number
+  issued_at: string
+  score: number | null
+  threshold: number
+  revoked: boolean
+}
+
+export const certificatesApi = {
+  get: (code: string) =>
+    request<CertificateView>(`/api/v1/certificates/${encodeURIComponent(code)}/`),
+}
+
+export interface ProgressCertificate {
+  id: number
+  code: string
+  issued_at: string
+  score: number | null
+}
+
+export interface ProgressModule {
+  id: number
+  title: string
+  lessons_total: number
+  lessons_done: number
+  lessons_awaiting_review: number
+  state: 'done' | 'in_progress' | 'not_started'
+  /** The course's next lesson, when it is in this module. */
+  next_lesson: { id: number; title: string } | null
+  /** Every lesson in the module, in order. */
+  lessons: ProgressLesson[]
+}
+
+export interface ProgressLesson {
+  id: number
+  title: string
+  required: boolean
+  state: 'done' | 'awaiting_review' | 'next' | 'not_started'
 }
 
 interface ProgressItem {
@@ -341,8 +404,6 @@ export interface ProgressTicket extends ProgressItem {
 export interface ProgressRated extends ProgressItem {
   status: string
   revisions: number
-  /** The mentor's score, out of 5. */
-  last_score: number | null
   due_at: string | null
   overdue: boolean
   feedback: string | null

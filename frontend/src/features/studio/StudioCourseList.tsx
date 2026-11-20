@@ -92,6 +92,9 @@ export function StudioCourseList() {
               {group.courses.map((course) => (
                 <li key={course.id}>
                   <Link to={`/studio/courses/${course.id}`} className={styles.row}>
+                    <span className={styles.monogram} aria-hidden="true">
+                      {course.title.trim().charAt(0).toUpperCase()}
+                    </span>
                     <span className={styles.main}>
                       <span className={styles.title}>{course.title}</span>
                       <span className={styles.meta}>{meta(course)}</span>

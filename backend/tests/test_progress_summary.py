@@ -319,9 +319,9 @@ class TestMentorRatedWork:
     def test_not_handed_in_yet(self, world):
         (sim,) = row(world)["rated"]
         assert sim["status"] == "not_submitted" and sim["feedback"] is None
-        assert sim["last_score"] is None
+        assert "last_score" not in sim
 
-    def test_a_rated_revision_shows_the_score_out_of_five_and_the_mentors_comment(self, world):
+    def test_a_rated_revision_shows_the_status_and_comment_but_never_the_mentors_score(self, world):
         case = self.hand_in(world)
         SimSubmission.objects.create(
             case=case,
@@ -339,7 +339,8 @@ class TestMentorRatedWork:
         )
         (sim,) = row(world)["rated"]
         assert sim["status"] == "changes_requested"
-        assert sim["last_score"] == 2.5 and sim["revisions"] == 1
+        assert "last_score" not in sim and sim["revisions"] == 1
+        assert "2.5" not in json.dumps(row(world)["rated"])
         assert sim["feedback"] == "Name the root cause next time."
         assert sim["due_at"] is not None and sim["rated_at"] is not None
 
@@ -365,6 +366,77 @@ class TestMentorRatedWork:
         assert "Second note." in raw and "First note." not in raw
         assert "RATER-ONLY" not in raw and "guidance" not in raw
         assert "rated_by" not in raw and "routing" not in raw and "assigned_mentor" not in raw
+
+
+class TestModuleIndex:
+    def test_every_module_in_order_with_its_lessons_nothing_started(self, world):
+        mods = row(world)["modules"]
+        assert [(m["title"], m["lessons_total"], m["lessons_done"], m["state"]) for m in mods] == [
+            ("Module One", 2, 0, "not_started"),
+            ("Module Two", 1, 0, "not_started"),
+        ]
+        assert mods[0]["next_lesson"] == {"id": world["intro"].pk, "title": "Intro"}
+        assert mods[1]["next_lesson"] is None
+        assert [(x["title"], x["state"]) for x in mods[0]["lessons"]] == [
+            ("Intro", "next"),
+            (mods[0]["lessons"][1]["title"], "not_started"),
+        ]
+        assert all(set(x) == {"id", "title", "required", "state"} for x in mods[0]["lessons"])
+
+    def test_a_finished_module_is_done_and_the_next_one_holds_what_is_next(self, world):
+        learner = world["learner"]
+        progress.complete_activity(learner, world["reading"].pk)
+        progress.submit_attempt(learner, world["plain"].pk, [[0]])
+        progress.complete_activity(learner, world["later"].pk)
+        progress.complete_lesson(learner, world["extra"].pk)
+        one, two = row(world)["modules"]
+        assert (two["state"], two["lessons_done"]) == ("done", 1)
+        assert one["state"] == "not_started" and one["lessons_done"] == 0
+        assert [x["state"] for x in two["lessons"]] == ["done"]
+
+    def test_an_optional_lesson_says_so(self, world):
+        world["extra"].is_required = False
+        world["extra"].save()
+        (lesson,) = row(world)["modules"][1]["lessons"]
+        assert lesson["required"] is False
+
+    def test_a_lesson_waiting_for_marks_starts_a_module_but_does_not_finish_it(
+        self, make_role_user
+    ):
+        w = build(make_role_user, title="Idx", order="sequential")
+        w.update(cast(make_role_user))
+        enrollment.enroll(w["learner"], w["course"])
+        progress.complete_activity(w["learner"], w["reading"].pk)
+        progress.submit_attempt(w["learner"], w["plain"].pk, [[0]])
+        progress.submit_attempt(w["learner"], w["mixed"].pk, ALL_RIGHT)
+        progress.complete_lesson(w["learner"], w["intro"].pk)
+        one = row(w)["modules"][0]
+        assert (one["state"], one["lessons_done"], one["lessons_awaiting_review"]) == (
+            "in_progress",
+            0,
+            1,
+        )
+        assert one["next_lesson"]["title"] == "Tickets"
+        assert [x["state"] for x in one["lessons"]] == ["awaiting_review", "next"]
+
+    def test_a_switched_off_module_is_not_in_the_index(self, world):
+        ModuleExclusion.objects.create(
+            enrollment=world["learner"].enrollments.get(), node=world["two"]
+        )
+        assert [m["title"] for m in row(world)["modules"]] == ["Module One"]
+
+    def test_an_empty_module_is_left_out(self, world):
+        from apps.catalog.models import ContentNode
+
+        ContentNode.objects.create(
+            course_version=world["version"],
+            parent=world["version"].root_node,
+            kind=ContentNode.Kind.SEGMENT,
+            title="Empty",
+            slug="empty",
+            order=9,
+        )
+        assert "Empty" not in [m["title"] for m in row(world)["modules"]]
 
 
 class TestTheEndpoint:

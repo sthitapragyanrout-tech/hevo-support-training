@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "apps.manual_sim",
     "apps.enrollment",
     "apps.notifications",
+    "apps.certification",
 ]
 
 MIDDLEWARE = [

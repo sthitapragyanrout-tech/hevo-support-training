@@ -7,7 +7,7 @@ export function Logo({ size = 24 }: { size?: number }) {
       <path
         d="M7.5 6.5v11M16.5 6.5v11M7.5 12h8.2M13.6 9.9l2.2 2.1-2.2 2.1"
         fill="none"
-        stroke="#fff"
+        stroke="var(--on-accent, #fff)"
         strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"

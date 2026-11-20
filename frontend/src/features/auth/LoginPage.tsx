@@ -32,7 +32,7 @@ export function LoginPage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.intro} aria-hidden="true">
+      <section className={`ink band ${styles.intro}`} aria-hidden="true">
         <div className={styles.lockup}>
           <Logo size={32} />
           <span>

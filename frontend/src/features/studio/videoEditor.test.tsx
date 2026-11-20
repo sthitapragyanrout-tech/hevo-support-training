@@ -127,6 +127,13 @@ function mount(config: Record<string, unknown> = {}, options: { disabled?: boole
   return { save, saved }
 }
 
+/** A new video opens on the Link tab; uploading starts from the Upload tab. */
+function mountUpload(config: Record<string, unknown> = {}) {
+  const mounted = mount(config)
+  fireEvent.click(screen.getByRole('tab', { name: 'Upload' }))
+  return mounted
+}
+
 const lastSaved = (save: ReturnType<typeof vi.fn>) => {
   const call = save.mock.calls[save.mock.calls.length - 1] as [{ config: Record<string, unknown> }]
   return call[0].config
@@ -141,14 +148,14 @@ const choose = (name = 'intro.mp4', size = 5000) => {
 describe('Video editor — uploading', () => {
   it('offers a file picker and says what is allowed', async () => {
     useRoutes({})
-    mount()
+    mountUpload()
     expect(await screen.findByRole('button', { name: 'Choose a video' })).toBeInTheDocument()
     expect(await screen.findByText(/MP4, MOV, WEBM · up to 1024 MB and 2 hours/)).toBeInTheDocument()
   })
 
   it('shows real progress, then processing, then the ready video — played in the editor', async () => {
     useRoutes({ 'GET /api/v1/authoring/media/5/': () => ({ status: 200, body: asset() }) })
-    const { save, saved } = mount()
+    const { save, saved } = mountUpload()
     await screen.findByText(/up to 1024 MB/)
     choose()
 
@@ -233,7 +240,7 @@ describe('Video editor — uploading', () => {
 
   it('refuses the wrong kind of file before sending anything', async () => {
     useRoutes({})
-    const { save } = mount()
+    const { save } = mountUpload()
     await screen.findByText(/up to 1024 MB/)
     choose('notes.txt')
     expect(screen.getByRole('alert')).toHaveTextContent('We can’t use that kind of file. Upload one of: MP4, MOV, WEBM.')
@@ -242,7 +249,7 @@ describe('Video editor — uploading', () => {
 
   it('refuses a file over the size limit before sending anything', async () => {
     useRoutes({})
-    mount()
+    mountUpload()
     await screen.findByText(/up to 1024 MB/)
     choose('big.mp4', 2000 * 1024 * 1024)
     expect(screen.getByRole('alert')).toHaveTextContent('larger than the 1024 MB limit')
@@ -250,7 +257,7 @@ describe('Video editor — uploading', () => {
 
   it('shows the server’s plain sentence when it refuses the upload', async () => {
     useRoutes({})
-    const { save } = mount()
+    const { save } = mountUpload()
     await screen.findByText(/up to 1024 MB/)
     choose()
     await act(async () =>
@@ -262,7 +269,7 @@ describe('Video editor — uploading', () => {
 
   it('says so, in words, when the connection drops', async () => {
     useRoutes({})
-    mount()
+    mountUpload()
     await screen.findByText(/up to 1024 MB/)
     choose()
     await act(async () => {
@@ -318,23 +325,30 @@ describe('Video editor — uploading', () => {
   })
 })
 
-describe('Video editor — YouTube', () => {
-  it('switches source and saves it', async () => {
+describe('Video editor — Link tab (YouTube or Google Drive, nothing stored)', () => {
+  const FILE = '1AbCdEfGhIjKlMnOpQrStUvWx'
+
+  it('is where a new video starts, with one field for either kind of link', async () => {
     useRoutes({})
-    const { save } = mount()
-    fireEvent.click(screen.getByRole('radio', { name: 'YouTube link' }))
-    await waitFor(() => expect(save).toHaveBeenCalled())
-    expect(lastSaved(save)).toMatchObject({ source: 'youtube' })
+    mount()
+    expect(screen.getByRole('tab', { name: 'Link' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Upload' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByLabelText('Video link')).toHaveValue('')
+    expect(screen.getByText(/Nothing is stored on this site/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Choose a video file')).not.toBeInTheDocument()
   })
 
-  it('accepts a real link and previews it in an embedded player — not a link out', async () => {
-    useRoutes({})
-    const { save } = mount({ source: 'youtube', youtube_url: 'https://youtu.be/dQw4w9WgXcQ' })
-    const frame = screen.getByTitle('Preview of the YouTube video')
-    expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  it('opens on Upload for a video that was uploaded', async () => {
+    useRoutes({ 'GET /api/v1/authoring/media/5/': () => ({ status: 200, body: READY }) })
+    mount({ media_asset: 5 })
+    expect(screen.getByRole('tab', { name: 'Upload' })).toHaveAttribute('aria-selected', 'true')
+    await screen.findByText(/Ready · 2:05/)
+  })
 
-    const field = screen.getByLabelText('YouTube link')
+  it('recognises a YouTube link, saves it as YouTube and previews it in place', async () => {
+    useRoutes({})
+    const { save, saved } = mount()
+    const field = screen.getByLabelText('Video link')
     fireEvent.change(field, { target: { value: 'https://www.youtube.com/watch?v=abcdefghijk' } })
     fireEvent.blur(field)
     await waitFor(() => expect(save).toHaveBeenCalled())
@@ -342,22 +356,84 @@ describe('Video editor — YouTube', () => {
       source: 'youtube',
       youtube_url: 'https://www.youtube.com/watch?v=abcdefghijk',
     })
+    saved(lastSaved(save))
+    expect(screen.getByTitle('Preview of the YouTube video')).toHaveAttribute(
+      'src',
+      'https://www.youtube-nocookie.com/embed/abcdefghijk',
+    )
+    expect(screen.getByText('YouTube video.')).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByText('How watching is counted')).toBeInTheDocument()
+  })
+
+  it('recognises a Google Drive link in any of the usual forms', async () => {
+    useRoutes({})
+    const { save } = mount()
+    const field = screen.getByLabelText('Video link')
+    fireEvent.change(field, { target: { value: `https://drive.google.com/open?id=${FILE}` } })
+    fireEvent.blur(field)
+    await waitFor(() => expect(save).toHaveBeenCalled())
+    expect(lastSaved(save)).toMatchObject({
+      source: 'drive',
+      drive_url: `https://drive.google.com/open?id=${FILE}`,
+    })
+  })
+
+  it('previews a Drive file in place, and says what it can’t measure and how to share it', async () => {
+    useRoutes({})
+    mount({ source: 'drive', drive_url: `https://drive.google.com/file/d/${FILE}/view?usp=sharing` })
+    expect(screen.getByLabelText('Video link')).toHaveValue(
+      `https://drive.google.com/file/d/${FILE}/view?usp=sharing`,
+    )
+    expect(screen.getByTitle('Preview of the Google Drive video')).toHaveAttribute(
+      'src',
+      `https://drive.google.com/file/d/${FILE}/preview`,
+    )
+    expect(screen.getByText(/Anyone with the link/)).toBeInTheDocument()
+    expect(screen.getByText(/learners confirm it/)).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.queryByText('How watching is counted')).not.toBeInTheDocument()
   })
 
   it.each([
     'https://example.com/watch?v=dQw4w9WgXcQ',
     'https://youtube.com.evil.io/watch?v=dQw4w9WgXcQ',
     'https://www.youtube.com/watch?v=short',
+    `https://drive.google.com.evil.io/file/d/${FILE}/view`,
+    `https://docs.google.com/file/d/${FILE}/view`,
+    'https://drive.google.com/drive/folders/' + FILE,
     'javascript:alert(1)',
     'not a link',
   ])('refuses %s with a sentence and saves nothing', async (bad) => {
     useRoutes({})
-    const { save } = mount({ source: 'youtube', youtube_url: '' })
-    const field = screen.getByLabelText('YouTube link')
+    const { save } = mount()
+    const field = screen.getByLabelText('Video link')
     fireEvent.change(field, { target: { value: bad } })
     fireEvent.blur(field)
-    expect(await screen.findByText(/Paste a valid YouTube link/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Paste a YouTube link .* or a Google Drive link/),
+    ).toBeInTheDocument()
     expect(save).not.toHaveBeenCalled()
+  })
+
+  it('switching tabs alone changes nothing until there is something to switch to', async () => {
+    useRoutes({})
+    const { save } = mount()
+    fireEvent.click(screen.getByRole('tab', { name: 'Upload' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Link' }))
+    expect(save).not.toHaveBeenCalled()
+  })
+
+  it('goes back to an uploaded video, or to the saved link, when its tab is chosen', async () => {
+    useRoutes({ 'GET /api/v1/authoring/media/5/': () => ({ status: 200, body: READY }) })
+    const { save } = mount({
+      source: 'youtube',
+      youtube_url: 'https://youtu.be/dQw4w9WgXcQ',
+      media_asset: 5,
+    })
+    fireEvent.click(screen.getByRole('tab', { name: 'Upload' }))
+    await waitFor(() => expect(save).toHaveBeenCalled())
+    expect(lastSaved(save)).toMatchObject({ source: 'upload', media_asset: 5 })
   })
 })
 
@@ -397,61 +473,3 @@ describe('Video editor — how watching is counted', () => {
 })
 
 
-describe('Video editor — Google Drive', () => {
-  const FILE = '1AbCdEfGhIjKlMnOpQrStUvWx'
-
-  it('is offered as a source and saves the choice', async () => {
-    useRoutes({})
-    const { save } = mount()
-    fireEvent.click(screen.getByRole('radio', { name: 'Google Drive link' }))
-    await waitFor(() => expect(save).toHaveBeenCalled())
-    expect(lastSaved(save)).toMatchObject({ source: 'drive' })
-  })
-
-  it('previews the file in an embedded player, and says what it can’t measure', async () => {
-    useRoutes({})
-    mount({
-      source: 'drive',
-      drive_url: `https://drive.google.com/file/d/${FILE}/view?usp=sharing`,
-    })
-    expect(screen.getByTitle('Preview of the Google Drive video')).toHaveAttribute(
-      'src',
-      `https://drive.google.com/file/d/${FILE}/preview`,
-    )
-    expect(screen.getByText(/Anyone with the link/)).toBeInTheDocument()
-    expect(screen.getByText(/learners confirm it/)).toBeInTheDocument()
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
-    // Nothing is measured, so the watching settings don't apply.
-    expect(screen.queryByText('How watching is counted')).not.toBeInTheDocument()
-  })
-
-  it('saves a share link in any of the usual forms', async () => {
-    useRoutes({})
-    const { save } = mount({ source: 'drive', drive_url: '' })
-    const field = screen.getByLabelText('Google Drive link', { selector: 'input' })
-    fireEvent.change(field, { target: { value: `https://drive.google.com/open?id=${FILE}` } })
-    fireEvent.blur(field)
-    await waitFor(() => expect(save).toHaveBeenCalled())
-    expect(lastSaved(save)).toMatchObject({
-      source: 'drive',
-      drive_url: `https://drive.google.com/open?id=${FILE}`,
-    })
-  })
-
-  it.each([
-    `https://example.com/file/d/${FILE}/view`,
-    `https://drive.google.com.evil.io/file/d/${FILE}/view`,
-    `https://docs.google.com/file/d/${FILE}/view`,
-    'https://drive.google.com/drive/folders/' + FILE,
-    'javascript:alert(1)',
-    'not a link',
-  ])('refuses %s with a sentence and saves nothing', async (bad) => {
-    useRoutes({})
-    const { save } = mount({ source: 'drive', drive_url: '' })
-    const field = screen.getByLabelText('Google Drive link', { selector: 'input' })
-    fireEvent.change(field, { target: { value: bad } })
-    fireEvent.blur(field)
-    expect(await screen.findByText(/Paste a valid Google Drive link/)).toBeInTheDocument()
-    expect(save).not.toHaveBeenCalled()
-  })
-})

@@ -54,7 +54,7 @@
   padding: 0 var(--sp-2);
   font-size: var(--fs-13);
   background: var(--bg);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius);
 }
 

@@ -115,9 +115,9 @@ function useAsset(id: number | null, onSettled?: () => void) {
   return { asset, unavailable, set: setAsset }
 }
 
-/** Add a video to a lesson: upload one (played from this site, watching verified
- * by the server) or paste a YouTube link (played in YouTube's player, tracked as
- * closely as it allows). Everything saves as you go. */
+/** Add a video to a lesson: paste a YouTube or Google Drive link (played inside the lesson,
+ * nothing stored here — the default), or upload a file (played from this site, watching verified
+ * by the server). Everything saves as you go. */
 export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) {
   const config = activity.config
   const source: Source =
@@ -127,6 +127,10 @@ export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) 
   const driveUrl = typeof config.drive_url === 'string' ? config.drive_url : ''
   const threshold = typeof config.completion_threshold === 'number' ? config.completion_threshold : 0.9
   const maxRate = typeof config.max_credited_rate === 'number' ? config.max_credited_rate : 1
+  // A new video (nothing uploaded, no link) opens on Link: links use no storage.
+  const [tab, setTab] = useState<'link' | 'upload'>(
+    source === 'upload' && assetId !== null ? 'upload' : 'link',
+  )
 
   const write = useConfigWriter(config, (next) => save({ config: next }))
   const [problem, setProblem] = useState<string | null>(null)
@@ -144,7 +148,7 @@ export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) 
     asset,
     unavailable,
     set: setAsset,
-  } = useAsset(source === 'upload' ? assetId : null, () => void refresh?.())
+  } = useAsset(tab === 'upload' ? assetId : null, () => void refresh?.())
 
   const [uploading, setUploading] = useState<{ name: string; fraction: number } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -190,17 +194,37 @@ export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) 
     if (input.current) input.current.value = ''
   }
 
-  async function saveYouTube(text: string) {
+  /** One field for either kind of link: which one it is decides the source. */
+  async function saveLink(text: string) {
     const value = text.trim()
-    if (value && !youtubeId(value)) throw new Error('Paste a valid YouTube link (youtube.com or youtu.be).')
-    await write((cfg) => ({ ...cfg, source: 'youtube', youtube_url: value }))
+    if (!value) {
+      await write((cfg) => ({ ...cfg, youtube_url: '', drive_url: '' }))
+      return
+    }
+    if (youtubeId(value)) {
+      await write((cfg) => ({ ...cfg, source: 'youtube', youtube_url: value }))
+      return
+    }
+    if (driveId(value)) {
+      await write((cfg) => ({ ...cfg, source: 'drive', drive_url: value }))
+      return
+    }
+    throw new Error('Paste a YouTube link (youtube.com or youtu.be) or a Google Drive link (drive.google.com).')
   }
 
-  async function saveDrive(text: string) {
-    const value = text.trim()
-    if (value && !driveId(value)) throw new Error('Paste a valid Google Drive link (drive.google.com).')
-    await write((cfg) => ({ ...cfg, source: 'drive', drive_url: value }))
+  /** Switching tabs only changes what learners see when there is something to switch to. */
+  function chooseTab(next: 'link' | 'upload') {
+    if (next === tab) return
+    setTab(next)
+    if (next === 'upload' && assetId !== null && source !== 'upload') {
+      run(write((cfg) => ({ ...cfg, source: 'upload' })))
+    } else if (next === 'link' && source === 'upload') {
+      if (youtubeUrl) run(write((cfg) => ({ ...cfg, source: 'youtube' })))
+      else if (driveUrl) run(write((cfg) => ({ ...cfg, source: 'drive' })))
+    }
   }
+
+  const linkValue = source === 'youtube' ? youtubeUrl : source === 'drive' ? driveUrl : ''
 
   async function savePercent(text: string) {
     const percent = Number(text)
@@ -218,34 +242,33 @@ export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) 
     await write((cfg) => ({ ...cfg, max_credited_rate: rate }))
   }
 
-  const embed = youtubeUrl ? youtubeId(youtubeUrl) : null
-  const driveEmbed = driveUrl ? driveId(driveUrl) : null
+  const embed = source === 'youtube' && youtubeUrl ? youtubeId(youtubeUrl) : null
+  const driveEmbed = source === 'drive' && driveUrl ? driveId(driveUrl) : null
 
   return (
     <div className={styles.editor}>
-      <div className={styles.sources} role="radiogroup" aria-label="Where the video comes from">
+      <div className={styles.sources} role="tablist" aria-label="Where the video comes from">
         {(
           [
-            ['upload', 'Upload a video'],
-            ['youtube', 'YouTube link'],
-            ['drive', 'Google Drive link'],
+            ['link', 'Link'],
+            ['upload', 'Upload'],
           ] as const
         ).map(([value, label]) => (
           <button
             key={value}
             type="button"
-            role="radio"
-            aria-checked={source === value}
+            role="tab"
+            aria-selected={tab === value}
             disabled={disabled}
-            className={`${styles.source} ${source === value ? styles.sourceOn : ''}`}
-            onClick={() => source !== value && run(write((cfg) => ({ ...cfg, source: value })))}
+            className={`${styles.source} ${tab === value ? styles.sourceOn : ''}`}
+            onClick={() => chooseTab(value)}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {source === 'upload' && (
+      {tab === 'upload' && (
         <div className={styles.block}>
           {uploading ? (
             <div className={styles.status} role="status">
@@ -354,56 +377,52 @@ export function VideoEditor({ activity, disabled, save, refresh }: EditorProps) 
         </div>
       )}
 
-      {source === 'youtube' && (
+      {tab === 'link' && (
         <div className={styles.block}>
           <AutosaveField
-            label="YouTube link"
-            value={youtubeUrl}
+            label="Video link"
+            value={linkValue}
             disabled={disabled}
-            onSave={saveYouTube}
-            placeholder="https://www.youtube.com/watch?v=…"
-            hint="Plays inside the lesson. Watching is tracked as closely as YouTube’s player allows."
+            onSave={saveLink}
+            placeholder="A YouTube or Google Drive link"
+            hint="Plays inside the lesson, straight from YouTube or Google Drive. Nothing is stored on this site."
           />
           {embed && (
-            <div className={styles.embed}>
-              <iframe
-                title="Preview of the YouTube video"
-                src={`https://www.youtube-nocookie.com/embed/${embed}`}
-                allow="encrypted-media; picture-in-picture"
-                referrerPolicy="strict-origin-when-cross-origin"
-                loading="lazy"
-              />
-            </div>
+            <>
+              <p className={styles.hint}>
+                <strong>YouTube video.</strong> Watching is tracked as closely as YouTube’s player
+                allows.
+              </p>
+              <div className={styles.embed}>
+                <iframe
+                  title="Preview of the YouTube video"
+                  src={`https://www.youtube-nocookie.com/embed/${embed}`}
+                  allow="encrypted-media; picture-in-picture"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  loading="lazy"
+                />
+              </div>
+            </>
           )}
-        </div>
-      )}
-
-      {source === 'drive' && (
-        <div className={styles.block}>
-          <AutosaveField
-            label="Google Drive link"
-            value={driveUrl}
-            disabled={disabled}
-            onSave={saveDrive}
-            placeholder="https://drive.google.com/file/d/…/view"
-            hint="Plays inside the lesson. Set the file’s sharing to “Anyone with the link”, or learners will be asked to request access."
-          />
           {driveEmbed && (
-            <div className={styles.embed}>
-              <iframe
-                title="Preview of the Google Drive video"
-                src={`https://drive.google.com/file/d/${driveEmbed}/preview`}
-                allow="fullscreen"
-                referrerPolicy="no-referrer"
-                loading="lazy"
-              />
-            </div>
+            <>
+              <p className={styles.hint}>
+                <strong>Google Drive video.</strong> Share the file with Hevo (or “Anyone with the
+                link”), or learners will be asked to request access. Google doesn’t share how much
+                was watched, so learners confirm it themselves (“I’ve watched this”) and trainers
+                see it as self-reported. For watching that’s checked, upload the video instead.
+              </p>
+              <div className={styles.embed}>
+                <iframe
+                  title="Preview of the Google Drive video"
+                  src={`https://drive.google.com/file/d/${driveEmbed}/preview`}
+                  allow="fullscreen"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+              </div>
+            </>
           )}
-          <p className={styles.hint}>
-            Google doesn’t share how much of a Drive video was watched, so learners confirm it
-            themselves (“I’ve watched this”). Trainers see it marked as self-reported. For watching
-            that’s checked, upload the video instead.
-          </p>
         </div>
       )}
 

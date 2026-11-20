@@ -47,10 +47,12 @@
 
 .prompt {
   padding: 0;
-  margin-bottom: var(--sp-2);
-  font-size: var(--fs-15);
-  font-weight: 500;
-  line-height: 1.5;
+  margin-bottom: var(--sp-3);
+  font-family: var(--font-display);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 
@@ -78,14 +80,14 @@
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  min-height: 44px;
-  padding: 8px var(--sp-3);
-  font-size: var(--fs-14);
+  min-height: 48px;
+  padding: 10px var(--sp-4);
+  font-size: var(--fs-15);
   line-height: 1.45;
   color: var(--text-body);
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
   cursor: pointer;
   transition:
     border-color 120ms ease-out,
@@ -113,6 +115,7 @@
   color: var(--text);
   background: var(--accent-tint);
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 /* Locked after submitting: still readable, no longer inviting a click. */

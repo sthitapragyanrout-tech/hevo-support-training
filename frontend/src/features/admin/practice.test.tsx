@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { mockApi, page, renderAt } from './testHelpers'
+import { mockApi, page, renderAt, enrolledCourse } from './testHelpers'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -96,9 +96,12 @@ describe('Practice scenarios — the bank', () => {
   })
 
   it('is not offered to someone who may only view results, and they cannot open it', async () => {
-    mockApi(RESULTS, { 'GET /api/v1/admin/results/learners/': page([]), 'GET /api/v1/admin/results/courses/': { results: [] } })
-    renderAt('/admin/results/learners')
-    await screen.findByRole('heading', { name: 'Learners' })
+    mockApi(RESULTS, {
+      'GET /api/v1/admin/results/dashboard/': { ...page([]), totals: { learners: 0, enrollments: 0, certificates: 0, courses: 0 }, groups: [] },
+      'GET /api/v1/admin/results/courses/': { results: [] },
+    })
+    renderAt('/admin/results/dashboard')
+    await screen.findByRole('heading', { name: 'Dashboard' })
     expect(screen.queryByRole('link', { name: 'Practice scenarios' })).not.toBeInTheDocument()
   })
 
@@ -320,9 +323,12 @@ describe('Learner results — practice tickets', () => {
       name: 'Ann Ames',
       email: 'ann@example.com',
       employee_id: null,
+      enrolled: [enrolledCourse(1, 10, 'CX Onboarding')],
+      certificates: [],
       courses: [
         {
           course_id: 1,
+          version_id: 10,
           title: 'CX Onboarding',
           version: 1,
           state: 'published',

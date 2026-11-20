@@ -27,7 +27,19 @@ type ActivityFields = Partial<
   >
 >
 
+export interface CertificatePolicy {
+  enabled: boolean
+  /** Whole percent, 1–100. */
+  threshold: number
+  weights: { quiz: number; practice: number; rated: number }
+  updated_at: string | null
+}
+
 export const studioApi = {
+  certificatePolicy: (courseId: number) =>
+    request<CertificatePolicy>(`${BASE}/courses/${courseId}/certificate/`),
+  saveCertificatePolicy: (courseId: number, body: Omit<CertificatePolicy, 'updated_at'>) =>
+    request<CertificatePolicy>(`${BASE}/courses/${courseId}/certificate/`, json('PUT', body)),
   activityTypes: () => request<ActivityType[]>(`${BASE}/activity-types/`),
   courses: () => request<AuthCourseSummary[]>(`${BASE}/courses/`),
   createCourse: (title: string, description: string) =>

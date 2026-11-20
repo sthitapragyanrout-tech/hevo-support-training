@@ -206,6 +206,8 @@ deploy/              nginx, systemd and backup notes for production
 * [docs/simbot.md](docs/simbot.md) — practice tickets (flow, scoring, operations, limits)
 * [docs/enrollment.md](docs/enrollment.md) — enrollment, programs, the access rule, moving learners between versions
 * [docs/notifications.md](docs/notifications.md) — the bell, what each person is told and when, the reminder sweep
+* [docs/design-system.md](docs/design-system.md) — the visual language: tokens, surfaces, type, depth, and the rules for extending it
+* [docs/certificates.md](docs/certificates.md) — certificates (the interim course score, issuing, revoking), the admin Dashboard and groups
 * [docs/scoring-open-questions.md](docs/scoring-open-questions.md) — what must be decided before the scoring roll-up (Module 8b) can be built
 * [docs/manual-simulation.md](docs/manual-simulation.md) — mentor-rated simulations
 * [docs/media-pipeline.md](docs/media-pipeline.md) — video upload and streaming

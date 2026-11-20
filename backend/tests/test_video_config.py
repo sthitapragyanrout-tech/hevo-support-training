@@ -192,7 +192,10 @@ class TestWhatABlocksPublishing:
 
     def test_a_new_video_needs_choosing(self, lesson):
         version = self.video_in(lesson, **registry.get_type("video").default_config)
-        assert any("Upload a video" in m for m in self.checklist(version))
+        assert any(
+            "Paste a YouTube or Google Drive link, or upload a video" in m
+            for m in self.checklist(version)
+        )
 
     @pytest.mark.parametrize("status", ["uploaded", "processing"])
     def test_an_unfinished_upload_blocks(self, lesson, author, media_dirs, status):

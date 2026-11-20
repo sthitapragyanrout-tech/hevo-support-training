@@ -194,6 +194,13 @@ def _lesson_title(activity: Activity) -> str:
     return node.title
 
 
+def _lesson_id(activity: Activity) -> int:
+    node = activity.content_node
+    if node.kind == ContentNode.Kind.SUBTOPIC and node.parent_id is not None:
+        return node.parent_id
+    return node.pk
+
+
 def _course_title(version: CourseVersion) -> str:
     return version.root_node.title if version.root_node else version.course.slug
 
@@ -340,7 +347,14 @@ def learner_detail(user) -> dict[str, Any]:
         for activity in (
             Activity.objects.filter(content_node__course_version=version)
             .select_related("content_node__parent__parent")
-            .order_by("content_node__order", "order", "id")
+            # Module, then lesson, then the activity's place in it (sections sit in lessons).
+            .order_by(
+                "content_node__parent__order",
+                "content_node__parent_id",
+                "content_node__order",
+                "order",
+                "id",
+            )
         ):
             if not is_completable(activity.activity_type, activity.config):
                 continue
@@ -355,6 +369,7 @@ def learner_detail(user) -> dict[str, Any]:
                     "title": activity.title,
                     "type": activity.activity_type,
                     "lesson": _lesson_title(activity),
+                    "lesson_id": _lesson_id(activity),
                     "required": activity.is_required,
                     "state": row.state if row else "not_started",
                     "scored": scored,
@@ -372,6 +387,7 @@ def learner_detail(user) -> dict[str, Any]:
         courses.append(
             {
                 "course_id": version.course_id,
+                "version_id": version.pk,
                 "title": _course_title(version),
                 "version": version.version,
                 "state": version.state,

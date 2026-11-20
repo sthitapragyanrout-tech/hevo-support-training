@@ -4,41 +4,43 @@
   min-height: 100svh;
 }
 
-/* Brand side: calm off-white with one diagram, not a hero image. */
-.intro {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: var(--sp-12) var(--sp-16);
-  background: var(--accent-tint);
-  border-right: 1px solid var(--accent-tint-strong);
-}
-
 .lockup {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  font-family: var(--font-display);
   font-size: var(--fs-18);
+  font-weight: 600;
   color: var(--text);
 }
 
 .lockup strong {
+  font-weight: 800;
   color: var(--accent);
 }
 
+/* Brand side: the ink band, one big sentence, and the pipeline the learner is about to learn to
+ * support, drawn as a signal travelling from source to destination. */
+.intro {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--sp-12) clamp(var(--sp-8), 5vw, var(--sp-16));
+}
+
 .pitch {
-  max-width: 460px;
+  max-width: 520px;
   padding-bottom: var(--sp-12);
 }
 
 .pitch h2 {
-  font-size: 2rem;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: clamp(var(--fs-34), 4vw, var(--fs-60));
+  line-height: 1.02;
+  letter-spacing: -0.035em;
 }
 
 .pitch p {
-  margin-top: var(--sp-4);
+  margin-top: var(--sp-5);
   font-size: var(--fs-18);
   line-height: 1.55;
   color: var(--text-body);
@@ -47,39 +49,51 @@
 .flow {
   display: flex;
   align-items: center;
-  gap: 0;
-  margin: var(--sp-8) 0 0;
+  margin: var(--sp-10) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .flow li {
   position: relative;
-  margin-right: 28px;
-  padding: 7px 14px;
+  margin-right: 44px;
+  padding: 10px 18px;
   font-size: var(--fs-14);
-  font-weight: 500;
-  color: var(--text);
-  background: var(--bg);
+  font-weight: 600;
+  color: var(--text-body);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
 }
 
 .flow li:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 100%;
+  left: calc(100% + 4px);
   top: 50%;
-  width: 28px;
-  height: 1.5px;
-  background: var(--border-strong);
+  width: 36px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--border-strong), var(--signal), var(--border-strong));
+  background-size: 200% 100%;
+  animation: travel 2.4s linear infinite;
+  border-radius: 2px;
+}
+
+@keyframes travel {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 
 .flow li.on {
-  color: var(--accent);
-  background: var(--bg);
-  border-color: var(--accent);
-  font-weight: 600;
+  color: var(--signal-ink);
+  background: var(--signal);
+  border-color: var(--signal);
+  box-shadow: 0 8px 24px -8px rgba(201, 245, 92, 0.6);
 }
 
 .formSide {
@@ -94,7 +108,12 @@
   flex-direction: column;
   gap: var(--sp-4);
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
+  padding: var(--sp-10);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
 }
 
 .mobileBrand {
@@ -102,8 +121,8 @@
 }
 
 .form h1 {
-  font-size: var(--fs-28);
-  letter-spacing: -0.02em;
+  font-size: var(--fs-34);
+  letter-spacing: -0.03em;
 }
 
 .sub {
@@ -147,5 +166,9 @@
 
   .mobileBrand {
     display: block;
+  }
+
+  .form {
+    padding: var(--sp-6);
   }
 }

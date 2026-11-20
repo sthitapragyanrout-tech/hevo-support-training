@@ -73,6 +73,8 @@
 
 /* ---- landing (detailed): a stop on the journey ---- */
 .detailed {
+  /* Jump links from the course map land clear of the sticky header. */
+  scroll-margin-top: calc(var(--header-h) + var(--sp-4));
   --marker: 32px;
   --pad: 36px;
   position: relative;
@@ -126,7 +128,7 @@
 }
 
 .detailedTitle {
-  font-size: var(--fs-18);
+  font-size: var(--fs-20);
   line-height: 32px;
 }
 
@@ -144,9 +146,19 @@
   white-space: nowrap;
 }
 
+/* One white list per module: rows divided by hairlines, not a pile of boxes. */
 .lessons {
   grid-column: 2;
-  margin: var(--sp-3) 0 0 calc(var(--sp-3) * -1);
+  margin: var(--sp-3) 0 0;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.lessons .list li + li {
+  border-top: 1px solid var(--border);
 }
 
 @media (max-width: 599px) {
@@ -170,7 +182,4 @@
     order: 3;
   }
 
-  .lessons {
-    margin-left: calc(var(--sp-2) * -1);
-  }
 }

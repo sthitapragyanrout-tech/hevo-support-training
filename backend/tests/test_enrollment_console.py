@@ -56,6 +56,7 @@ ENDPOINTS = [
     ("post", "enrollment-withdraw", (1,)),
     ("post", "enrollment-reenroll", (1,)),
     ("post", "enrollment-mentor", (1,)),
+    ("post", "enrollment-group", (1,)),
     ("get", "enrollment-modules", (1,)),
     ("post", "enrollment-modules", (1,)),
     ("get", "programs", ()),
@@ -180,8 +181,8 @@ class TestEnrolling:
     @pytest.mark.parametrize(
         "data,message",
         [
-            ({}, "Choose a course or a program"),
-            ({"course_id": 1, "program_id": 1}, "Choose a course or a program"),
+            ({}, "Choose a course or a group"),
+            ({"course_id": 1, "program_id": 1}, "Choose a course or a group"),
             ({"course_id": True}, "must be a number"),
             ({"course_id": "x"}, "must be a number"),
         ],
@@ -319,8 +320,54 @@ class TestOneRow:
         assert bad.status_code == 400
         assert assignments.mentor_for(world["lea"], world["course"]) is None
 
+    def test_set_change_and_clear_the_group_with_audit(self, client, make_role_user, world):
+        other = course_with(make_role_user, title="Other")
+        l1 = Program.objects.create(name="L1")
+        l1.items.create(course=world["course"])
+        l2 = Program.objects.create(name="L2")
+        l2.items.create(course=world["course"])
+        elsewhere = Program.objects.create(name="Elsewhere")
+        elsewhere.items.create(course=other["course"])
+        row, _ = services.enroll(world["lea"], world["course"])
+        url = u("enrollment-group", row.pk)
+
+        done = call(client, world["trainer"], "post", url, {"program_id": l1.pk})
+        assert done.status_code == 200 and done.json()["program"]["name"] == "L1"
+        moved = call(client, world["trainer"], "post", url, {"program_id": l2.pk})
+        assert moved.json()["program"]["name"] == "L2"
+        cleared = call(client, world["trainer"], "post", url, {"program_id": None})
+        assert cleared.json()["program"] is None
+
+        wrong = call(client, world["trainer"], "post", url, {"program_id": elsewhere.pk})
+        assert wrong.status_code == 400 and "include this course" in wrong.json()["detail"]
+        from django.utils import timezone
+
+        l1.archived_at = timezone.now()
+        l1.save()
+        assert call(client, world["trainer"], "post", url, {"program_id": l1.pk}).status_code == 409
+        assert call(client, world["trainer"], "post", url, {"program_id": 99999}).status_code == 404
+        row.refresh_from_db()
+        assert row.program is None
+        changes = list(
+            AuditLog.objects.filter(action="enrollments.group")
+            .order_by("id")
+            .values_list("changes", flat=True)
+        )
+        assert changes == [
+            {"from": "no group", "to": "L1"},
+            {"from": "L1", "to": "L2"},
+            {"from": "L2", "to": "no group"},
+        ]
+        # Only a label: what the learner can open is unchanged.
+        assert Enrollment.objects.get(pk=row.pk).version_id == row.version_id
+
     def test_unknown_rows_are_404(self, client, world):
-        for name in ("enrollment-withdraw", "enrollment-reenroll", "enrollment-mentor"):
+        for name in (
+            "enrollment-withdraw",
+            "enrollment-reenroll",
+            "enrollment-mentor",
+            "enrollment-group",
+        ):
             assert call(client, world["trainer"], "post", u(name, 99999), {}).status_code == 404
 
 

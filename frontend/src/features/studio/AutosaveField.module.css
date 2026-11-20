@@ -19,7 +19,7 @@
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius);
   resize: vertical;
   transition:

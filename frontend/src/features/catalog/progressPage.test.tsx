@@ -16,6 +16,41 @@ const course = (over: Partial<ProgressCourse> = {}): ProgressCourse => ({
   lessons_done: 1,
   lessons_awaiting_review: 0,
   next_lesson: { id: 7, title: 'Reading a failure log' },
+  modules: [
+    {
+      id: 101,
+      title: 'Getting started',
+      lessons_total: 1,
+      lessons_done: 1,
+      lessons_awaiting_review: 0,
+      state: 'done',
+      next_lesson: null,
+      lessons: [{ id: 5, title: 'Welcome', required: true, state: 'done' }],
+    },
+    {
+      id: 102,
+      title: 'Pipelines',
+      lessons_total: 2,
+      lessons_done: 0,
+      lessons_awaiting_review: 1,
+      state: 'in_progress',
+      next_lesson: { id: 7, title: 'Reading a failure log' },
+      lessons: [
+        { id: 3, title: 'Sources', required: true, state: 'awaiting_review' },
+        { id: 7, title: 'Reading a failure log', required: false, state: 'next' },
+      ],
+    },
+    {
+      id: 103,
+      title: 'Escalations',
+      lessons_total: 1,
+      lessons_done: 0,
+      lessons_awaiting_review: 0,
+      state: 'not_started',
+      next_lesson: null,
+      lessons: [{ id: 9, title: 'Customer reply', required: true, state: 'not_started' }],
+    },
+  ],
   quizzes: [
     {
       activity_id: 20,
@@ -79,13 +114,13 @@ const course = (over: Partial<ProgressCourse> = {}): ProgressCourse => ({
       required: true,
       status: 'changes_requested',
       revisions: 1,
-      last_score: 2.5,
       due_at: '2026-11-20T10:00:00Z',
       overdue: false,
       feedback: 'Name the root cause next time.',
       rated_at: '2026-11-09T10:00:00Z',
     },
   ],
+  certification: { enabled: false, certificate: null },
   ...over,
 })
 
@@ -158,27 +193,66 @@ describe('My progress', () => {
     )
   })
 
-  it('says when lessons wait for marks, and when everything is complete', async () => {
-    mockServer([
-      course({ lessons_awaiting_review: 2 }),
-      course({
-        course_id: 2,
-        version_id: 11,
-        title: 'Billing',
-        lessons_total: 2,
-        lessons_done: 2,
-        next_lesson: null,
-        quizzes: [],
-        practice: [],
-        rated: [],
-      }),
-    ])
+  it('lists every course in the side panel, finished ones too, and opens the one picked', async () => {
+    const billing = course({
+      course_id: 2,
+      version_id: 11,
+      title: 'Billing',
+      lessons_total: 2,
+      lessons_done: 2,
+      next_lesson: null,
+      quizzes: [],
+      practice: [],
+      rated: [],
+    })
+    const fresh = course({
+      course_id: 3,
+      version_id: 12,
+      title: 'Escalations',
+      lessons_total: 5,
+      lessons_done: 0,
+    })
+    mockServer([course({ lessons_awaiting_review: 2 }), billing, fresh])
     renderAt('/progress')
     expect(await screen.findByText(/2 waiting for marks or a rating/)).toBeInTheDocument()
-    const billing = screen.getByRole('region', { name: 'Billing' })
-    expect(billing).toHaveTextContent('All lessons complete.')
+    const panel = screen.getByRole('navigation', { name: 'Your courses' })
+    const link = (name: string) => within(panel).getByRole('link', { name: new RegExp(name) })
+    expect(link('Support basics')).toHaveAttribute('aria-current', 'page')
+    expect(link('Billing')).toHaveTextContent('Complete · 2 lessons')
+    expect(link('Billing')).toHaveAttribute('href', '/progress?course=2')
+    expect(link('Escalations')).toHaveTextContent('Not started · 5 lessons')
+    // Not started reads as words, never an empty bar.
+    expect(within(link('Escalations')).queryByRole('progressbar')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Billing' })).toBeNull()
+
+    fireEvent.click(link('Billing'))
+    const section = await screen.findByRole('region', { name: 'Billing' })
+    expect(section).toHaveTextContent('All lessons complete.')
     // A course with nothing scored has no empty tables.
-    expect(within(billing).queryByRole('table')).not.toBeInTheDocument()
+    expect(within(section).queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Support basics' })).toBeNull()
+  })
+
+  it('opens on the course under way, and says "Not started" with no 0% for one not begun', async () => {
+    const fresh = course({ course_id: 3, version_id: 12, title: 'Escalations', lessons_done: 0 })
+    mockServer([fresh, course()])
+    renderAt('/progress')
+    expect(await screen.findByRole('region', { name: 'Support basics' })).toBeInTheDocument()
+    fireEvent.click(
+      within(screen.getByRole('navigation', { name: 'Your courses' })).getByRole('link', {
+        name: /Escalations/,
+      }),
+    )
+    const section = await screen.findByRole('region', { name: 'Escalations' })
+    expect(section).toHaveTextContent('Not started · 4 lessons')
+    expect(section).not.toHaveTextContent('0%')
+    expect(within(section).queryByRole('progressbar')).toBeNull()
+  })
+
+  it('opens the course named in the address', async () => {
+    mockServer([course(), course({ course_id: 2, version_id: 11, title: 'Billing' })])
+    renderAt('/progress?course=2')
+    expect(await screen.findByRole('region', { name: 'Billing' })).toBeInTheDocument()
   })
 
   it('lists each quiz with its status, tries (of the limit) and best and latest scores', async () => {
@@ -212,12 +286,45 @@ describe('My progress', () => {
     expect(table).not.toHaveTextContent('%')
   })
 
-  it('shows mentor-rated work with the score out of 5, the deadline and the feedback', async () => {
+  it('lists every module in order in the side panel, telling done, under way and not started apart', async () => {
+    mockServer([course()])
+    renderAt('/progress')
+    const list = await screen.findByRole('list', { name: 'Modules in Support basics' })
+    const items = Array.from(list.children) as HTMLElement[]
+    expect(items.map((li) => li.querySelector('summary')!.textContent)).toEqual([
+      expect.stringContaining('Getting startedComplete · 1 lesson'),
+      expect.stringContaining('PipelinesIn progress · 0 of 2 lessons done · 1 waiting for marks'),
+      expect.stringContaining('EscalationsNot started · 1 lesson'),
+    ])
+    // Each state looks different, not only reads different.
+    expect(new Set(items.map((li) => li.className)).size).toBe(3)
+    expect(screen.getByText('1 of 3 complete')).toBeInTheDocument()
+    expect(list).not.toHaveTextContent('0%')
+    // Only the module under way starts open, so a long course stays short.
+    expect(items.map((li) => li.querySelector('details')!.open)).toEqual([false, true, false])
+  })
+
+  it('shows each module’s lessons with their state, linking to the lesson', async () => {
+    mockServer([course()])
+    renderAt('/progress')
+    const lessons = await screen.findByRole('list', { name: 'Lessons in Pipelines' })
+    const [sources, failures] = within(lessons).getAllByRole('listitem')
+    expect(sources).toHaveTextContent('Waiting for marks')
+    expect(failures).toHaveTextContent('Up next')
+    expect(failures).toHaveTextContent('Optional')
+    expect(within(failures).getByRole('link', { name: 'Reading a failure log' })).toHaveAttribute(
+      'href',
+      '/courses/1/lessons/7',
+    )
+  })
+
+  it('shows mentor-rated work with its status, the deadline and the feedback, but no score', async () => {
     mockServer([course()])
     renderAt('/progress')
     const table = await screen.findByRole('table', { name: 'Mentor-rated work in Support basics' })
     expect(table).toHaveTextContent('Changes requested')
-    expect(table).toHaveTextContent('2.5 / 5')
+    expect(table).not.toHaveTextContent('/ 5')
+    expect(within(table).queryByRole('columnheader', { name: 'Score' })).toBeNull()
     expect(table).toHaveTextContent('Name the root cause next time.')
     expect(table).toHaveTextContent(/due /)
     expect(table).not.toHaveTextContent('%')
@@ -244,6 +351,45 @@ describe('My progress', () => {
     for (const word of [/overall/i, /rank/i, /grade/i, /certificate/i, /leaderboard/i]) {
       expect(section).not.toHaveTextContent(word)
     }
+  })
+
+  it('shows the course score against the pass mark while a certificate is not earned yet', async () => {
+    mockServer([
+      course({
+        certification: {
+          enabled: true,
+          threshold: 70,
+          score: 0.64,
+          missing: ['practice'],
+          eligible: false,
+          certificate: null,
+        },
+      }),
+    ])
+    renderAt('/progress')
+    const section = await screen.findByRole('region', { name: 'Support basics' })
+    expect(section).toHaveTextContent('course score so far 64% · pass mark 70%')
+    expect(section).toHaveTextContent('finish the course to earn it')
+    expect(section).toHaveTextContent('still to do: practice tickets')
+  })
+
+  it('links to the certificate once it is earned', async () => {
+    mockServer([
+      course({
+        certification: {
+          enabled: true,
+          threshold: 70,
+          score: 0.9,
+          missing: [],
+          eligible: true,
+          certificate: { id: 3, code: 'ABCDEFGHJK', issued_at: '2026-11-12T10:00:00Z', score: 0.9 },
+        },
+      }),
+    ])
+    renderAt('/progress')
+    const link = await screen.findByRole('link', { name: 'View certificate' })
+    expect(link).toHaveAttribute('href', '/certificates/ABCDEFGHJK')
+    expect(screen.getByText('Certificate earned')).toBeInTheDocument()
   })
 
   it('says plainly when the learner is not enrolled anywhere', async () => {

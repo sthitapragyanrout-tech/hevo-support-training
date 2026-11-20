@@ -58,14 +58,14 @@ export function ProgramDialog({ program, courses, onClose, onSaved }: Props) {
       else await adminApi.createProgram(body)
       onSaved(program ? `${name} is saved.` : `${name} is created.`)
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'We couldn’t save the program.')
+      setProblem(err instanceof Error ? err.message : 'We couldn’t save the group.')
       setBusy(false)
     }
   }
 
   return (
     <Dialog
-      title={program ? `Edit ${program.name}` : 'New program'}
+      title={program ? `Edit ${program.name}` : 'New group'}
       width={560}
       onClose={onClose}
       actions={
@@ -122,7 +122,7 @@ export function ProgramDialog({ program, courses, onClose, onSaved }: Props) {
           <span className={styles.sub}>Courses, in order</span>
           {items.length === 0 ? (
             <p className={page.muted}>
-              No courses yet. Add the courses learners take in this program.
+              No courses yet. Add the courses learners take in this group.
             </p>
           ) : (
             <ol className={page.courseRows}>

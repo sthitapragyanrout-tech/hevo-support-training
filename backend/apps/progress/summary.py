@@ -17,7 +17,7 @@ from collections import defaultdict
 from typing import Any
 
 from apps.activities.registry import is_completable
-from apps.catalog.models import Activity
+from apps.catalog.models import Activity, ContentNode
 from apps.enrollment import access
 from apps.enrollment.models import Enrollment
 from apps.manual_sim.models import SimSubmission
@@ -37,7 +37,30 @@ def learner_summary(user) -> dict[str, Any]:
         .select_related("course", "version__root_node")
         .order_by("-enrolled_at", "-id")
     )
-    return {"courses": [_course(user, e) for e in enrollments]}
+    return {"courses": [public(_course(user, e)) for e in enrollments]}
+
+
+# Internal keys a learner never receives: the mentor's score is used to work out the course score
+# but is not shown on My progress.
+_INTERNAL_RATED = ("last_score",)
+
+
+def public(course: dict[str, Any]) -> dict[str, Any]:
+    """The learner's copy of a course summary: without the mentor scores, and without the
+    per-kind breakdown of the course score (one of its parts is the mentor's average)."""
+    return {
+        **course,
+        "rated": [
+            {k: v for k, v in r.items() if k not in _INTERNAL_RATED} for r in course["rated"]
+        ],
+        "certification": {k: v for k, v in course["certification"].items() if k != "parts"},
+    }
+
+
+def course_summary(user, enrollment: Enrollment) -> dict[str, Any]:
+    """The full internal summary of one enrollment (mentor scores included): for staff views and
+    for working out certificates. Never send this to the learner; use `public`."""
+    return _course(user, enrollment)
 
 
 def _quiz_status(state: str | None, pending: bool, count: int) -> str:
@@ -129,7 +152,7 @@ def _course(user, enrollment: Enrollment) -> dict[str, Any]:
                     **where,
                     "status": r.get("status", "not_submitted"),
                     "revisions": r.get("revisions", 0),
-                    # The mentor's score is out of 5, never a percentage.
+                    # Internal only (see `public`): learners see the status and the mentor's words.
                     "last_score": r.get("last_score"),
                     "due_at": r.get("due_at"),  # already an ISO string
                     "overdue": bool(r.get("overdue")),
@@ -139,18 +162,87 @@ def _course(user, enrollment: Enrollment) -> dict[str, Any]:
                 }
             )
 
-    return {
+    required_left = sum(1 for lesson in ordered if lesson.required and lesson.id not in completed)
+    course = {
         "course_id": version.course_id,
+        "enrollment_id": enrollment.pk,
         "version_id": version.pk,
         "title": version.root_node.title if version.root_node else version.course.slug,
         "lessons_total": len(ordered),
         "lessons_done": len(completed),
         "lessons_awaiting_review": len(payload["awaiting_review_lessons"]),
         "next_lesson": {"id": next_id, "title": titles[next_id]} if next_id in titles else None,
+        "modules": _modules(
+            version, disabled, completed, set(payload["awaiting_review_lessons"]), next_id, titles
+        ),
+        "required_lessons_left": required_left,
         "quizzes": quizzes,
         "practice": practice,
         "rated": rated,
     }
+    from apps.certification import services as certification
+
+    course["certification"] = certification.standing(user, enrollment, course)
+    return course
+
+
+def _modules(
+    version, disabled, completed: set[int], awaiting: set[int], next_id, titles
+) -> list[dict[str, Any]]:
+    """The course's modules in order, each with how many of its lessons are done and every lesson
+    with its state. A lesson waiting for marks is not done (as on the course page); switched-off
+    modules are left out."""
+    lessons_by_module: dict[int, list[int]] = defaultdict(list)
+    info: dict[int, tuple[str, bool]] = {}
+    for module_id, lesson_id, title, required in (
+        ContentNode.objects.filter(course_version=version, kind=ContentNode.Kind.TOPIC)
+        .order_by("order", "id")
+        .values_list("parent_id", "id", "title", "is_required")
+    ):
+        lessons_by_module[module_id].append(lesson_id)
+        info[lesson_id] = (title, required)
+    out = []
+    for module in ContentNode.objects.filter(
+        course_version=version, kind=ContentNode.Kind.SEGMENT
+    ).order_by("order", "id"):
+        if module.pk in disabled:
+            continue
+        lessons = lessons_by_module.get(module.pk, [])
+        if not lessons:  # an empty module has nothing to finish; leave it out of the index
+            continue
+        done = sum(1 for lesson_id in lessons if lesson_id in completed)
+        started = done or any(lesson_id in awaiting for lesson_id in lessons)
+        state = "done" if done == len(lessons) else "in_progress" if started else "not_started"
+        nxt = next_id if next_id in lessons else None
+        out.append(
+            {
+                "id": module.pk,
+                "title": module.title,
+                "lessons_total": len(lessons),
+                "lessons_done": done,
+                "lessons_awaiting_review": sum(1 for i in lessons if i in awaiting),
+                "state": state,
+                "next_lesson": {"id": nxt, "title": titles[nxt]} if nxt in titles else None,
+                "lessons": [
+                    {
+                        "id": i,
+                        "title": info[i][0],
+                        "required": info[i][1],
+                        "state": _lesson_state(i, completed, awaiting, next_id),
+                    }
+                    for i in lessons
+                ],
+            }
+        )
+    return out
+
+
+def _lesson_state(lesson_id: int, completed: set[int], awaiting: set[int], next_id) -> str:
+    if lesson_id in completed:
+        return "done"
+    if lesson_id in awaiting:
+        return "awaiting_review"
+    return "next" if lesson_id == next_id else "not_started"
 
 
 def _tickets(user, activity_ids: list[int]) -> dict[int, list[tuple[Any, float]]]:

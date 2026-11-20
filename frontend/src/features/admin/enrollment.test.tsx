@@ -53,11 +53,11 @@ const posts = (calls: Call[], suffix: string) =>
   calls.filter((c) => c.method === 'POST' && c.path.endsWith(suffix))
 
 describe('who sees it', () => {
-  it('shows the Enrollments and Programs links only to people who may manage enrollments', async () => {
+  it('shows the Enrollments and Groups links only to people who may manage enrollments', async () => {
     mockApi(ENROLL, routes())
     renderAt('/admin/enrollments')
     expect(await screen.findByRole('link', { name: 'Enrollments' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Programs' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Groups' })).toBeInTheDocument()
   })
 
   it('refuses the page to anyone else', async () => {
@@ -92,7 +92,7 @@ describe('the list', () => {
     expect(within(lea).queryByRole('button', { name: 'Move to newest' })).not.toBeInTheDocument()
   })
 
-  it('filters by course, program, status and older version', async () => {
+  it('filters by course, group, status and older version', async () => {
     const calls = mockApi(ENROLL, routes())
     renderAt('/admin/enrollments')
     await screen.findByText('Lea Learner')
@@ -100,7 +100,7 @@ describe('the list', () => {
       target: { value: '2' },
     })
     await waitFor(() => expect(calls.some((c) => c.query.get('course') === '2')).toBe(true))
-    fireEvent.change(screen.getByLabelText('Program'), {
+    fireEvent.change(screen.getByLabelText('Group'), {
       target: { value: '5' },
     })
     await waitFor(() => expect(calls.some((c) => c.query.get('program') === '5')).toBe(true))
@@ -232,8 +232,8 @@ describe('enrolling people', () => {
     renderAt('/admin/enrollments')
     fireEvent.click(await screen.findByRole('button', { name: 'Enroll people' }))
     const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByLabelText('A whole program'))
-    fireEvent.change(within(dialog).getByLabelText('Program'), {
+    fireEvent.click(within(dialog).getByLabelText('A whole group'))
+    fireEvent.change(within(dialog).getByLabelText('Group'), {
       target: { value: '5' },
     })
     fireEvent.click(await within(dialog).findByRole('checkbox', { name: /Lea Learner/ }))
@@ -352,6 +352,36 @@ describe('one row', () => {
       await screen.findByText(/mentor for CX Onboarding is now Mia Mentor/),
     ).toBeInTheDocument()
     expect(posts(calls, '/31/mentor/')[0].body).toEqual({ mentor_id: 9 })
+  })
+
+  it('puts the enrollment in a group that includes its course, or in none', async () => {
+    const calls = mockApi(
+      ENROLL,
+      {
+        ...routes([row()], {
+          'POST /api/v1/admin/enrollments/31/group/': row(),
+        }),
+        'GET /api/v1/admin/enrollments/options/': {
+          ...OPTIONS,
+          programs: [
+            { id: 5, name: 'L1', course_ids: [1, 2] },
+            { id: 6, name: 'Billing only', course_ids: [2] },
+          ],
+        },
+      },
+    )
+    renderAt('/admin/enrollments')
+    fireEvent.click(await screen.findByRole('button', { name: 'Group' }))
+    const dialog = await screen.findByRole('dialog')
+    const select = within(dialog).getByLabelText('Group')
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'No group',
+      'L1',
+    ])
+    fireEvent.change(select, { target: { value: '5' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Lea Learner is in L1 for CX Onboarding.')).toBeInTheDocument()
+    expect(posts(calls, '/31/group/')[0].body).toEqual({ program_id: 5 })
   })
 
   it('withdraws with a reason, after explaining what it does', async () => {
@@ -483,8 +513,8 @@ describe('choosing modules', () => {
       target: { value: '2' },
     })
     expect(within(dialog).queryByRole('group', { name: /Modules/ })).not.toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('radio', { name: 'A whole program' }))
-    fireEvent.change(within(dialog).getByLabelText('Program'), {
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'A whole group' }))
+    fireEvent.change(within(dialog).getByLabelText('Group'), {
       target: { value: '5' },
     })
     expect(within(dialog).queryByRole('group', { name: /Modules/ })).not.toBeInTheDocument()
@@ -905,7 +935,7 @@ describe('programs', () => {
       'POST /api/v1/admin/programs/': program(),
     })
     renderAt('/admin/programs')
-    fireEvent.click(await screen.findByRole('button', { name: 'New program' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'New group' }))
     const dialog = await screen.findByRole('dialog')
     fireEvent.change(within(dialog).getByLabelText('Name'), {
       target: { value: 'April cohort' },
@@ -952,16 +982,16 @@ describe('programs', () => {
       ...base([]),
       'POST /api/v1/admin/programs/': {
         status: 409,
-        body: { detail: 'There is already a program with that name.' },
+        body: { detail: 'There is already a group with that name.' },
       },
     })
     renderAt('/admin/programs')
-    fireEvent.click(await screen.findByRole('button', { name: 'New program' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'New group' }))
     const dialog = await screen.findByRole('dialog')
     fireEvent.change(within(dialog).getByLabelText('Name'), {
       target: { value: 'Dup' },
     })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('already a program')
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('already a group')
   })
 })

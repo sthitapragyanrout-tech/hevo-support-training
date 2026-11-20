@@ -50,6 +50,7 @@ const PATHS: Record<string, ReactNode> = {
   ),
   arrowUp: <path d="M8 13V3m-4 4l4-4 4 4" />,
   arrowDown: <path d="M8 3v10m-4-4l4 4 4-4" />,
+  sort: <path d="M5 6l3-3 3 3M5 10l3 3 3-3" />,
   eye: (
     <>
       <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />

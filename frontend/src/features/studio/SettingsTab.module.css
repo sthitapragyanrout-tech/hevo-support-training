@@ -84,3 +84,62 @@
 .next {
   margin-top: var(--sp-8);
 }
+
+/* ── Certificate ───────────────────────────────────────────────────────── */
+.cert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-3) 0 var(--sp-2);
+}
+
+.certFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.certFields:disabled {
+  opacity: 0.55;
+}
+
+.inlineField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.inlineField input {
+  width: 7rem;
+}
+
+.suffix {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-weight: 400;
+}
+
+.fieldLabel {
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.weights .hint {
+  font-weight: 400;
+}

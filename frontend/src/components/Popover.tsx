@@ -87,7 +87,7 @@ export function Popover({ trigger, children, align = 'start', width = 280, label
           ref={panelRef}
           role="dialog"
           aria-label={label}
-          className={`${styles.panel} ${align === 'end' ? styles.end : ''} ${up ? styles.up : ''}`}
+          className={`light ${styles.panel} ${align === 'end' ? styles.end : ''} ${up ? styles.up : ''}`}
           style={{ width, translate: shift ? `${shift}px 0` : undefined }}
         >
           {children(() => setOpen(false))}

@@ -80,14 +80,21 @@ export function DataTable<Row>({
                     }
                   >
                     {c.sort && onOrdering ? (
-                      <button type="button" className={styles.sort} onClick={() => toggle(c.sort!)}>
+                      <button
+                        type="button"
+                        className={`${styles.sort} ${active ? styles.sortActive : ''}`}
+                        onClick={() => toggle(c.sort!)}
+                        title={`Sort by ${c.header.toLowerCase()}`}
+                      >
                         {c.header}
-                        {active && (
-                          <Icon
-                            name={ordering?.startsWith('-') ? 'arrowDown' : 'arrowUp'}
-                            size={12}
-                          />
-                        )}
+                        {/* Every sortable column shows a mark, so it is plain it can be clicked. */}
+                        <Icon
+                          name={
+                            active ? (ordering?.startsWith('-') ? 'arrowDown' : 'arrowUp') : 'sort'
+                          }
+                          size={12}
+                          className={active ? undefined : styles.sortIdle}
+                        />
                       </button>
                     ) : (
                       c.header

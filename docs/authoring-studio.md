@@ -127,9 +127,11 @@ no longer blocks the lesson, and the learner can continue. Every try is recorded
 scores are never lost; learners see their own history under "View results". The author
 preview shows the questions but scores nothing.
 
-Re-testing: with `ALLOW_ATTEMPT_RESET` on (dev settings turn it on; it is off by default)
-a signed-in user sees "Reset attempts" on a quiz they have tried, which deletes their own
-attempts and reopens the lesson. Production leaves it off until trainers get a proper screen.
+Re-testing: `ALLOW_ATTEMPT_RESET` is **off everywhere by default, including dev**. When it is
+turned on (set it to `True` in your local settings, or the env var), a signed-in user sees "Reset
+attempts" on a quiz they have tried, which deletes their own attempts and reopens the lesson. It
+defeats the attempt limit, so learners never get it by default; trainers and admins reset a
+learner's attempts from the learner's page in the Admin console (confirmed and audited).
 
 ## Videos
 

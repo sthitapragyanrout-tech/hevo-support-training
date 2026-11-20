@@ -1,0 +1,67 @@
+/* Four plain counts above the list: no grades, no colours that read as good or bad. */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  margin: 0 0 var(--sp-5);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.totals > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.totals > div + div {
+  border-left: 1px solid var(--border);
+}
+
+.totals dt {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.totals dd {
+  margin: 0;
+  font-size: var(--fs-28);
+  color: var(--text);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 110px;
+}
+
+.progressText {
+  font-size: var(--fs-13);
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+.earned {
+  font-weight: 600;
+  color: var(--success);
+}
+
+@media (max-width: 599px) {
+  .totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .totals > div:nth-child(3) {
+    border-left: 0;
+  }
+
+  .totals > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}

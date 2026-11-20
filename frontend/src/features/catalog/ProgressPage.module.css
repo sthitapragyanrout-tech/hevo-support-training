@@ -1,16 +1,12 @@
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--sp-12) var(--sp-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-12);
+.hero {
+  padding-block: var(--sp-10);
 }
 
-@media (max-width: 640px) {
-  .page {
-    padding: var(--sp-8) var(--sp-4);
-  }
+.heroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-10);
+  align-items: end;
 }
 
 .header {
@@ -21,27 +17,93 @@
 
 .heading {
   margin: 0;
-  font-size: var(--fs-28);
+  font-size: clamp(var(--fs-34), 4.4vw, var(--fs-44));
+  letter-spacing: -0.035em;
   color: var(--text);
 }
 
 .lede {
   margin: 0;
-  font-size: var(--fs-14);
+  max-width: 48ch;
+  font-size: var(--fs-16);
   color: var(--text-muted);
 }
 
+.summary {
+  display: flex;
+  gap: var(--sp-8);
+  margin: 0;
+}
+
+.summary dt {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.summary dd {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0 0;
+}
+
+.summary :global(.num) {
+  font-size: var(--fs-44);
+  color: var(--text);
+}
+
+.summary small {
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  padding-block: var(--sp-10) var(--sp-20);
+}
+
+@media (max-width: 760px) {
+  .heroInner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-6);
+  }
+
+  .hero {
+    padding-block: var(--sp-8);
+  }
+
+  .summary :global(.num) {
+    font-size: var(--fs-28);
+  }
+}
+
+/* One course = one white sheet: its progress, then the work behind it. */
 .course {
   display: flex;
   flex-direction: column;
   gap: var(--sp-6);
-  padding-top: var(--sp-6);
-  border-top: 1px solid var(--border);
+  padding: clamp(var(--sp-5), 3vw, var(--sp-8));
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.courseHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
 }
 
 .courseTitle {
   margin: 0;
-  font-size: var(--fs-20);
+  font-size: var(--fs-22);
 }
 
 .courseTitle a {
@@ -50,7 +112,18 @@
 }
 
 .courseTitle a:hover {
-  text-decoration: underline;
+  color: var(--accent);
+}
+
+.pct {
+  font-size: var(--fs-34);
+  color: var(--text);
+}
+
+.pct small {
+  font-size: var(--fs-16);
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .overview {
@@ -78,8 +151,9 @@
 
 .blockTitle {
   margin: 0;
-  font-size: var(--fs-14);
-  letter-spacing: 0.04em;
+  font-size: var(--fs-12);
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -106,6 +180,7 @@
   font-size: var(--fs-12);
   font-weight: 600;
   color: var(--text-muted);
+  background: var(--surface);
 }
 
 .table tbody th {
@@ -131,4 +206,32 @@
 .feedback {
   max-width: 340px;
   color: var(--text-body);
+}
+
+/* ── Certificate line ──────────────────────────────────────────────────── */
+.cert {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-14);
+  color: var(--text-body);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.cert strong {
+  color: var(--text);
+}
+
+.cert a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.certEarned {
+  background: var(--success-tint);
+  border-color: transparent;
+}
+
+.certEarned strong {
+  color: var(--success);
 }

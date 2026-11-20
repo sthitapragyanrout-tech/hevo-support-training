@@ -1,11 +1,18 @@
 .layout {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   min-height: calc(100svh - var(--header-h));
 }
 
+/* A white rail, pinned under the header and scrolling on its own. */
 .rail {
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  height: calc(100svh - var(--header-h));
+  overflow-y: auto;
   padding: var(--sp-8) var(--sp-4);
+  background: var(--bg);
   border-right: 1px solid var(--border);
 }
 
@@ -15,9 +22,9 @@
 
 .groupTitle {
   margin: 0 0 var(--sp-2) var(--sp-3);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: var(--fs-11);
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
@@ -30,21 +37,30 @@
 
 .link {
   display: block;
-  padding: 7px var(--sp-3);
+  padding: 8px var(--sp-3);
   font-size: var(--fs-14);
+  font-weight: 500;
   color: var(--text-body);
   text-decoration: none;
   border-radius: var(--radius);
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
 }
 
 .link:hover {
-  background: var(--surface);
+  color: var(--text);
+  background: var(--surface-2);
 }
 
-.active {
+/* The current screen: tinted, with a bar on the rail's own edge. */
+.active,
+.active:hover {
   font-weight: 600;
   color: var(--accent);
   background: var(--accent-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .content {
@@ -58,12 +74,20 @@
   }
 
   .rail {
+    position: static;
+    height: auto;
     display: flex;
     gap: var(--sp-6);
     padding: var(--sp-3) var(--sp-4);
     overflow-x: auto;
     border-right: 0;
     border-bottom: 1px solid var(--border);
+  }
+
+  .active,
+  .active:hover {
+    box-shadow: inset 0 -3px 0 var(--accent);
+    border-radius: var(--radius) var(--radius) 0 0;
   }
 
   .group + .group {

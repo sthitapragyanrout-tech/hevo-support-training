@@ -190,6 +190,24 @@ def _close_open_tickets(row: Enrollment) -> None:
 
 
 @transaction.atomic
+def set_group(enrollment: Enrollment, program: Program | None) -> Enrollment:
+    """Put this enrollment in a group (a program), or take it out with None. Nothing about what
+    the learner can open changes: the group is a label for reporting, so it must be a live
+    program that contains this course."""
+    row = Enrollment.objects.select_for_update(of=("self",)).get(pk=enrollment.pk)
+    if program is not None:
+        if program.archived_at is not None:
+            raise Conflict("That group is archived.")
+        if not program.items.filter(course_id=row.course_id).exists():
+            raise EnrollmentError(
+                f"{program.name} doesn’t include this course. Add the course to the group first."
+            )
+    row.program = program
+    row.save(update_fields=["program"])
+    return row
+
+
+@transaction.atomic
 def change_mentor(enrollment: Enrollment, mentor, *, by=None) -> Enrollment:
     """Set (or, with None, clear) the learner's mentor for this course."""
     row = Enrollment.objects.select_for_update().get(pk=enrollment.pk)
@@ -221,7 +239,7 @@ def enroll_program(user, program: Program, *, mentor=None, by=None, now=None) ->
     """Enroll `user` on every course in the program that can be enrolled on. A course that
     cannot (no published version, archived) is reported, not an error: the rest go ahead."""
     if program.archived_at is not None:
-        raise Conflict("That program is archived.")
+        raise Conflict("That group is archived.")
     out: list[CourseResult] = []
     for course in program_courses(program):
         try:
@@ -334,12 +352,12 @@ def bulk(
     row cannot undo the others. `modules` is one choice of modules for everyone newly enrolled
     in this run, so it only makes sense for a single course."""
     if (course is None) == (program is None):
-        raise EnrollmentError("Choose a course or a program to enroll them on.")
+        raise EnrollmentError("Choose a course or a group to enroll them on.")
     if modules is not None:
         modules = list(modules)
         if program is not None:
             raise EnrollmentError(
-                "Choosing modules works for one course at a time. Enroll the program with "
+                "Choosing modules works for one course at a time. Enroll the group with "
                 "every module, then trim individual learners."
             )
         try:  # a bad choice stops the whole run, before anyone is touched
@@ -348,7 +366,7 @@ def bulk(
             pass  # no published version: every row will say so itself
     targets = [course] if course is not None else program_courses(program)  # type: ignore[arg-type]
     if not targets:
-        raise Conflict("That program has no courses yet.")
+        raise Conflict("That group has no courses yet.")
     rows = parse_rows(text)
 
     emails = {r.email for r in rows} | {r.mentor_email for r in rows if r.mentor_email}
@@ -468,11 +486,11 @@ def summarise(rows: list[Row]) -> dict[str, int]:
 def _validate_program_fields(name, starts_on, ends_on):
     name = (name or "").strip()
     if not name:
-        raise EnrollmentError("Give the program a name.")
+        raise EnrollmentError("Give the group a name.")
     if len(name) > 200:
-        raise EnrollmentError("Program names can be at most 200 characters.")
+        raise EnrollmentError("Group names can be at most 200 characters.")
     if starts_on and ends_on and ends_on < starts_on:
-        raise EnrollmentError("A program can’t end before it starts.")
+        raise EnrollmentError("A group can’t end before it starts.")
     return name
 
 
@@ -493,7 +511,7 @@ def save_program(
     if program is not None:
         clash = clash.exclude(pk=program.pk)
     if clash.exists():
-        raise Conflict("There is already a program with that name.")
+        raise Conflict("There is already a group with that name.")
     if program is None:
         program = Program(created_by=by)
     program.name = name
@@ -504,12 +522,12 @@ def save_program(
     if courses is not None:
         ids = [cid for cid, _ in courses]
         if len(set(ids)) != len(ids):
-            raise EnrollmentError("A course can only appear once in a program.")
+            raise EnrollmentError("A course can only appear once in a group.")
         found = {c.pk: c for c in Course.objects.filter(pk__in=ids)}
         if set(found) != set(ids):
             raise NotFound("One of those courses doesn’t exist.")
         if any(c.archived_at is not None for c in found.values()):
-            raise Conflict("An archived course can’t be in a program.")
+            raise Conflict("An archived course can’t be in a group.")
         program.items.all().delete()
         ProgramCourse.objects.bulk_create(
             ProgramCourse(program=program, course=found[cid], order=i, is_required=required)
@@ -521,7 +539,7 @@ def save_program(
 @transaction.atomic
 def archive_program(program: Program, *, now=None) -> Program:
     if program.archived_at is not None:
-        raise Conflict("That program is already archived.")
+        raise Conflict("That group is already archived.")
     program.archived_at = now or timezone.now()
     program.save(update_fields=["archived_at"])
     return program
@@ -530,9 +548,9 @@ def archive_program(program: Program, *, now=None) -> Program:
 @transaction.atomic
 def restore_program(program: Program) -> Program:
     if program.archived_at is None:
-        raise Conflict("That program isn’t archived.")
+        raise Conflict("That group isn’t archived.")
     if Program.objects.filter(name__iexact=program.name, archived_at__isnull=True).exists():
-        raise Conflict("Another program has taken this name; rename that one first.")
+        raise Conflict("Another group has taken this name; rename that one first.")
     program.archived_at = None
     program.save(update_fields=["archived_at"])
     return program
@@ -542,7 +560,7 @@ def enroll_missing(program: Program, *, by=None, now=None) -> dict[str, int]:
     """Bring everyone already in the program up to date with it: enroll them on any of its
     courses added since (and not on one they have withdrawn from). Returns counts."""
     if program.archived_at is not None:
-        raise Conflict("That program is archived.")
+        raise Conflict("That group is archived.")
     members = list(User.objects.filter(enrollments__program=program, is_active=True).distinct())
     added = skipped = 0
     for user in members:

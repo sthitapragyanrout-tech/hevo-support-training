@@ -99,3 +99,27 @@ export const page = <T,>(results: T[], extra: object = {}) => ({
   page_size: 25,
   ...extra,
 })
+
+/** A minimal "enrolled now" course for learner-detail mocks, matching a `courses` entry by
+ * version id so its activities show as the current course. */
+export function enrolledCourse(courseId: number, versionId: number, title: string) {
+  return {
+    course_id: courseId,
+    version_id: versionId,
+    enrollment_id: 100 + courseId,
+    version: 1,
+    title,
+    group: null,
+    lessons_total: 3,
+    lessons_done: 1,
+    lessons_awaiting_review: 0,
+    required_lessons_left: 2,
+    next_lesson: null,
+    quiz_score: null,
+    modules: [],
+    quizzes: [],
+    practice: [],
+    rated: [],
+    certification: { enabled: false, certificate: null },
+  }
+}

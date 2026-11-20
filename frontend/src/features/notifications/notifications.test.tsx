@@ -131,6 +131,7 @@ describe('keeping the count fresh', () => {
     const { calls } = serve([note(1)])
     renderAt('/')
     await bell()
+    await waitFor(() => expect(countCalls(calls)).toBe(1))
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     await act(async () => {
       await vi.advanceTimersByTimeAsync(POLL_MS * 3)
@@ -147,6 +148,9 @@ describe('keeping the count fresh', () => {
     const { calls } = serve([note(1)])
     renderAt('/')
     await bell()
+    // The listener is attached by the same effect that makes the first request: wait for that
+    // request, or under load the event can fire before anyone is listening.
+    await waitFor(() => expect(countCalls(calls)).toBe(1))
     await act(async () => {
       window.dispatchEvent(new Event('focus'))
     })

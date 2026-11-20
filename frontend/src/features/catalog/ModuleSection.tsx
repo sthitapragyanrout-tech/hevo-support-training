@@ -5,7 +5,14 @@ import type { LessonStatus } from '../../components/StatusIcon'
 import { LessonItem } from './LessonItem'
 import { ModuleMarker } from './ModuleMarker'
 import styles from './ModuleSection.module.css'
-import { formatMinutes, pluralize, summarize, totalMinutes, type Lesson, type Module } from './treeUtils'
+import {
+  formatMinutes,
+  pluralize,
+  summarize,
+  totalMinutes,
+  type Lesson,
+  type Module,
+} from './treeUtils'
 
 interface Props {
   basePath: string
@@ -93,7 +100,11 @@ export function ModuleSection({
 
   const summary = summarize(module.node.description, 200)
   return (
-    <section className={styles.detailed} aria-labelledby={`${listId}-title`}>
+    <section
+      id={`module-${module.node.id}`}
+      className={styles.detailed}
+      aria-labelledby={`${listId}-title`}
+    >
       <div className={styles.marker}>
         <ModuleMarker number={module.number} state={markerState} />
       </div>

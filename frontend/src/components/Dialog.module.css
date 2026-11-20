@@ -2,7 +2,8 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(12, 16, 36, 0.6);
+  backdrop-filter: blur(3px);
   animation: fade 120ms ease-out;
 }
 
@@ -13,9 +14,10 @@
   z-index: 61;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  padding: var(--sp-6);
+  padding: var(--sp-8);
   background: var(--bg);
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-pop);
   transform: translate(-50%, -50%);
   animation: rise 140ms ease-out;
@@ -26,8 +28,8 @@
 }
 
 .title {
-  font-size: var(--fs-18);
-  letter-spacing: -0.01em;
+  font-size: var(--fs-22);
+  letter-spacing: -0.025em;
 }
 
 .body {

@@ -5,6 +5,7 @@ injected."""
 from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
 from apps.enrollment.models import Enrollment, ModuleExclusion
 from apps.manual_sim import services as sims
@@ -209,9 +210,13 @@ class TestOverdueReviews:
 
 class TestTheDailyDigest:
     def overdue_two(self, world):
+        """Noon on the day after both deadlines passed. The digest is keyed on the local date, so a
+        time read off the real clock could sit just before midnight and make "an hour later" a new
+        day (or "a day later" two); a mid-day moment cannot."""
         a = opened(world)
         b = opened(world, "other")
-        return max(a.due_at, b.due_at) + timedelta(hours=2)
+        after = timezone.localtime(max(a.due_at, b.due_at) + timedelta(days=1))
+        return after.replace(hour=12, minute=0, second=0, microsecond=0)
 
     def test_managers_get_one_message_a_day_counting_learners_not_cases(self, world):
         late = self.overdue_two(world)
@@ -250,8 +255,6 @@ class TestTheTasks:
         assert set(tasks.sweep()) == {"learner", "mentors", "escalated", "digest"}
 
     def test_the_prune_task_deletes_old_read_notices(self, world):
-        from django.utils import timezone
-
         made = services.notify(world["learner"], "k", "old")
         Notification.objects.filter(pk=made.pk).update(
             created_at=timezone.now() - timedelta(days=200)

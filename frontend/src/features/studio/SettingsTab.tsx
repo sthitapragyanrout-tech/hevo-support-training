@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { CertificateSettings } from './CertificateSettings'
 import { studioApi } from './studioApi'
 import { useBuilder } from './builderContext'
 import styles from './SettingsTab.module.css'
@@ -69,6 +70,9 @@ export function SettingsTab() {
           {problem}
         </p>
       )}
+
+      <h2 className={styles.next}>Certificate</h2>
+      <CertificateSettings courseId={course.id} />
 
       <h2 className={styles.next}>Course status</h2>
       <dl className={styles.facts}>

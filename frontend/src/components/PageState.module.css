@@ -5,11 +5,12 @@
   gap: var(--sp-3);
   max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--sp-12) var(--sp-4);
+  padding: var(--sp-20) var(--sp-4);
 }
 
 .title {
-  font-size: var(--fs-22);
+  font-size: var(--fs-28);
+  letter-spacing: -0.03em;
 }
 
 .body {

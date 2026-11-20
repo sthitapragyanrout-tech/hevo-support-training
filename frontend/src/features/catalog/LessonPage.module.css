@@ -4,14 +4,22 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-content: center;
-  padding: var(--sp-12) var(--sp-8) var(--sp-16);
+  padding: var(--sp-10) var(--sp-6) var(--sp-20);
 }
 
+/* The lesson is a sheet of paper on the canvas: white, softly lifted, with the measure kept
+ * to a comfortable ~70 characters inside its padding. */
 .lesson {
-  max-width: var(--measure);
+  --sheet-pad: clamp(var(--sp-5), 5vw, var(--sp-12));
   width: 100%;
+  max-width: 46rem;
   margin: 0 auto;
-  font-size: 1.0625rem; /* the measure is relative to the 17px reading size */
+  padding: var(--sheet-pad);
+  font-size: 1.0625rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
 }
 
 .rail {
@@ -20,18 +28,28 @@
 
 @media (min-width: 1280px) {
   .page {
-    grid-template-columns: minmax(0, var(--measure)) 220px;
-    column-gap: 64px;
+    grid-template-columns: minmax(0, 46rem) 220px;
+    column-gap: var(--sp-10);
+    justify-content: center;
+  }
+
+  /* No "In this lesson" list for a short lesson: no empty column either; the sheet centres. */
+  .page:has(> .rail:empty) {
+    grid-template-columns: minmax(0, 46rem);
   }
 
   .lesson {
     margin: 0;
   }
 
+  .rail:empty {
+    display: none;
+  }
+
   .rail {
     display: block;
     position: sticky;
-    top: calc(var(--header-h) + var(--sp-12));
+    top: calc(var(--header-h) + var(--sp-10));
     align-self: start;
     padding-top: 6px;
   }
@@ -66,13 +84,13 @@
 }
 
 .header {
-  margin: var(--sp-6) 0 var(--sp-8);
+  margin: var(--sp-5) 0 var(--sp-8);
 }
 
 .header h1 {
-  font-size: var(--fs-28);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: clamp(var(--fs-28), 3.6vw, var(--fs-44));
+  line-height: 1.06;
+  letter-spacing: -0.03em;
   overflow-wrap: anywhere;
 }
 
@@ -196,11 +214,18 @@
     'title arrow'
     'summary arrow';
   column-gap: var(--sp-6);
-  padding: var(--sp-6) 0;
+  padding: var(--sp-6);
   color: inherit;
   text-decoration: none;
-  border-top: 2px solid var(--accent);
-  border-bottom: 1px solid var(--border);
+  background: var(--accent-tint);
+  border-radius: var(--radius-lg);
+  transition:
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.upNext:hover {
+  background: var(--accent-tint-strong);
 }
 
 .upNextLabel {
@@ -241,8 +266,16 @@
 .upNextArrow {
   grid-area: arrow;
   align-self: center;
-  color: var(--accent);
-  transition: transform 120ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--accent), transparent 30%);
+  transition: transform 160ms ease-out;
 }
 
 .upNext:hover .upNextTitle {
@@ -254,9 +287,9 @@
 }
 
 .end {
-  padding: var(--sp-6) 0;
-  border-top: 2px solid var(--accent);
-  border-bottom: 1px solid var(--border);
+  padding: var(--sp-6);
+  background: var(--accent-tint);
+  border-radius: var(--radius-lg);
 }
 
 .endLink {
@@ -288,11 +321,12 @@
 
 @media (max-width: 599px) {
   .page {
-    padding: var(--sp-6) var(--sp-4) var(--sp-12);
+    padding: var(--sp-4) var(--sp-3) var(--sp-12);
   }
 
   .lesson {
     font-size: 1rem;
+    border-radius: var(--radius-lg);
   }
 
   .header {

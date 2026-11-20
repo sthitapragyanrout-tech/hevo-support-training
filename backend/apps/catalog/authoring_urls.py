@@ -1,5 +1,7 @@
 from django.urls import path
 
+from apps.certification import views as _certificates
+
 from . import authoring_views as v
 
 app_name = "authoring_api"
@@ -15,6 +17,11 @@ urlpatterns = [
     path("courses/<int:pk>/submit/", v.SubmitView.as_view(), name="submit"),
     path("courses/<int:pk>/publish/", v.PublishView.as_view(), name="publish"),
     path("courses/<int:pk>/return-to-draft/", v.ReturnToDraftView.as_view(), name="return"),
+    path(
+        "courses/<int:pk>/certificate/",
+        _certificates.PolicyView.as_view(),
+        name="certificate-policy",
+    ),
     path("courses/<int:pk>/import/preview/", v.ImportPreviewView.as_view(), name="import-preview"),
     path("courses/<int:pk>/import/commit/", v.ImportCommitView.as_view(), name="import-commit"),
     path("nodes/<int:pk>/", v.NodeDetailView.as_view(), name="node"),

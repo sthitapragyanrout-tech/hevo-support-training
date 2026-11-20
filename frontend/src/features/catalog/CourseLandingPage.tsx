@@ -69,130 +69,173 @@ export function CourseLandingPage() {
   const statusOf = (lesson: Lesson): LessonStatus => lessonStatus(lesson, progress)
 
   return (
-    <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.intro}>
-          <p className={styles.eyebrow}>Onboarding course</p>
-          <h1>{root.title}</h1>
-          {lead.map((p, i) => (
-            <p key={i} className={i === 0 ? styles.lead : styles.more}>
-              {p}
-            </p>
-          ))}
-          <p className={styles.metaLine}>{metaLine}</p>
-
-          {started && (
-            <div className={styles.progress}>
-              <ProgressBar value={doneCount} max={lessons.length} label="Course progress" />
-            </div>
-          )}
-
-          {target ? (
-            <div className={styles.start}>
-              <Link
-                to={`${basePath}/lessons/${target.node.id}`}
-                className={`btn btn-primary ${styles.cta}`}
-              >
-                {allDone ? 'Review course' : started ? 'Continue learning' : 'Start course'}
-                <Icon name="arrowRight" size={16} />
-              </Link>
-              <p className={styles.startsWith}>
-                {allDone ? (
-                  'You’ve completed every lesson. Revisit any of them below.'
-                ) : (
-                  <>
-                    {started ? 'Up next: ' : 'Starts with '}
-                    <strong>{target.node.title}</strong>
-                    {targetMinutes != null && ` · ${formatMinutes(targetMinutes)}`}
-                  </>
-                )}
+    <div>
+      <header className={`ink band ${styles.hero}`}>
+        <div className={`page ${styles.heroInner}`}>
+          <div className={styles.intro}>
+            <p className="eyebrow">Onboarding course</p>
+            <h1>{root.title}</h1>
+            {lead.map((p, i) => (
+              <p key={i} className={i === 0 ? styles.lead : styles.more}>
+                {p}
               </p>
-            </div>
-          ) : (
-            <p className={styles.more}>No lessons have been added yet.</p>
-          )}
-        </div>
+            ))}
+            <p className={styles.metaLine}>{metaLine}</p>
 
-        <section className={styles.glance} aria-label="At a glance">
-          <dl>
-          <div>
-            <dt>Status</dt>
-            <dd>{statusText}</dd>
+            {started && (
+              <div className={styles.progress}>
+                <ProgressBar
+                  size="lg"
+                  value={doneCount}
+                  max={lessons.length}
+                  label="Course progress"
+                />
+                <span>
+                  {doneCount} of {lessons.length}
+                </span>
+              </div>
+            )}
+
+            {target ? (
+              <div className={styles.start}>
+                <Link
+                  to={`${basePath}/lessons/${target.node.id}`}
+                  className={`btn btn-signal btn-lg ${styles.cta}`}
+                >
+                  {allDone ? 'Review course' : started ? 'Continue learning' : 'Start course'}
+                  <Icon name="arrowRight" size={16} />
+                </Link>
+                <p className={styles.startsWith}>
+                  {allDone ? (
+                    'You’ve completed every lesson. Revisit any of them below.'
+                  ) : (
+                    <>
+                      {started ? 'Up next: ' : 'Starts with '}
+                      <strong>{target.node.title}</strong>
+                      {targetMinutes != null && ` · ${formatMinutes(targetMinutes)}`}
+                    </>
+                  )}
+                </p>
+              </div>
+            ) : (
+              <p className={styles.more}>No lessons have been added yet.</p>
+            )}
           </div>
-          {duration && (
-            <div>
-              <dt>Time</dt>
-              <dd>{duration}</dd>
-            </div>
-          )}
-          <div>
-            <dt>Lessons</dt>
-            <dd>{`${lessons.length} in ${pluralize(modules.length, 'module')}`}</dd>
-          </div>
-          {mix.length > 0 && (
-            <div>
-              <dt>Includes</dt>
-              <dd>{mix.join(', ')}</dd>
-            </div>
-          )}
-          </dl>
-        </section>
+
+          <section className={styles.glance} aria-label="At a glance">
+            <dl>
+              <div>
+                <dt>Status</dt>
+                <dd>{statusText}</dd>
+              </div>
+              {duration && (
+                <div>
+                  <dt>Time</dt>
+                  <dd>{duration}</dd>
+                </div>
+              )}
+              <div>
+                <dt>Lessons</dt>
+                <dd>{`${lessons.length} in ${pluralize(modules.length, 'module')}`}</dd>
+              </div>
+              {mix.length > 0 && (
+                <div>
+                  <dt>Includes</dt>
+                  <dd>{mix.join(', ')}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        </div>
       </header>
 
-      {outcomes.length > 0 && (
-        <section className={styles.outcomes} aria-labelledby="outcomes-heading">
-          <h2 id="outcomes-heading" className={styles.sectionHeading}>
-            What you’ll learn
-          </h2>
-          <ul className={styles.outcomeList}>
-            {outcomes.map((o) => (
-              <li key={o}>
-                <Icon name="target" size={16} />
-                {o}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section aria-labelledby="curriculum-heading" className={styles.curriculum}>
-        <div className={styles.curriculumHead}>
-          <h2 id="curriculum-heading" className={styles.sectionHeading}>
-            Your path through the course
-          </h2>
-          {lessons.length > 0 && (
-            <input
-              type="search"
-              className={styles.filter}
-              placeholder="Filter lessons"
-              aria-label="Filter lessons"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+      <div className={`page ${styles.content}`}>
+        <aside className={styles.side}>
+          {outcomes.length > 0 && (
+            <section className={styles.outcomes} aria-labelledby="outcomes-heading">
+              <h2 id="outcomes-heading" className={styles.sectionHeading}>
+                What you’ll learn
+              </h2>
+              <ul className={styles.outcomeList}>
+                {outcomes.map((o) => (
+                  <li key={o}>
+                    <Icon name="target" size={16} />
+                    {o}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
-        </div>
 
-        {visible.length === 0 ? (
-          <p className={styles.empty}>
-            {filtering ? `No lessons match “${query.trim()}”.` : 'This course has no modules yet.'}
-          </p>
-        ) : (
-          <div>
-            {visible.map(({ module, lessons: shown }) => (
-              <ModuleSection
-                key={module.node.id}
-                basePath={basePath}
-                module={module}
-                lessons={shown}
-                statusOf={statusOf}
-                lockedHintOf={(lesson) => unlockHint(lesson, progress)}
-                markerState={moduleMarker(module, progress, target?.moduleId ?? null)}
-                variant="detailed"
+          <nav className={styles.map} aria-label="Course map">
+            <h2 className={styles.sectionHeading}>Course map</h2>
+            <ol>
+              {modules.map((m) => {
+                const done = m.lessons.filter((l) => progress.completed.has(l.node.id)).length
+                return (
+                  <li key={m.node.id}>
+                    <a href={`#module-${m.node.id}`}>
+                      <span className={`num ${styles.mapNum}`}>{m.number}</span>
+                      <span className={styles.mapTitle}>{m.node.title}</span>
+                      <span className={styles.mapCount}>
+                        {done}/{m.lessons.length}
+                      </span>
+                      <span className={styles.mapBar} aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${m.lessons.length ? (done / m.lessons.length) * 100 : 0}%`,
+                          }}
+                        />
+                      </span>
+                    </a>
+                  </li>
+                )
+              })}
+            </ol>
+          </nav>
+        </aside>
+
+        <section aria-labelledby="curriculum-heading" className={styles.curriculum}>
+          <div className={styles.curriculumHead}>
+            <h2 id="curriculum-heading" className={styles.sectionHeading}>
+              Your path through the course
+            </h2>
+            {lessons.length > 0 && (
+              <input
+                type="search"
+                className={styles.filter}
+                placeholder="Filter lessons"
+                aria-label="Filter lessons"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
-            ))}
+            )}
           </div>
-        )}
-      </section>
+
+          {visible.length === 0 ? (
+            <p className={styles.empty}>
+              {filtering
+                ? `No lessons match “${query.trim()}”.`
+                : 'This course has no modules yet.'}
+            </p>
+          ) : (
+            <div>
+              {visible.map(({ module, lessons: shown }) => (
+                <ModuleSection
+                  key={module.node.id}
+                  basePath={basePath}
+                  module={module}
+                  lessons={shown}
+                  statusOf={statusOf}
+                  lockedHintOf={(lesson) => unlockHint(lesson, progress)}
+                  markerState={moduleMarker(module, progress, target?.moduleId ?? null)}
+                  variant="detailed"
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

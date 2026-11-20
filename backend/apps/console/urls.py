@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.bot_sim import console as practice
+from apps.certification import views as certificates
 from apps.enrollment import console as enrollments
 from apps.manual_sim import console as ratings
 from apps.manual_sim import quiz_console as quiz_reviews
@@ -12,6 +13,7 @@ app_name = "console_api"
 urlpatterns = [
     # Learner results
     path("results/courses/", results.ResultCoursesView.as_view(), name="result-courses"),
+    path("results/dashboard/", results.DashboardView.as_view(), name="dashboard"),
     path("results/learners/", results.LearnerListView.as_view(), name="learners"),
     path("results/learners/<int:user_id>/", results.LearnerDetailView.as_view(), name="learner"),
     path(
@@ -125,6 +127,7 @@ urlpatterns = [
     path(
         "enrollments/<int:pk>/mentor/", enrollments.MentorView.as_view(), name="enrollment-mentor"
     ),
+    path("enrollments/<int:pk>/group/", enrollments.GroupView.as_view(), name="enrollment-group"),
     path(
         "enrollments/<int:pk>/modules/",
         enrollments.ModulesView.as_view(),
@@ -156,6 +159,16 @@ urlpatterns = [
         "programs/<int:pk>/enroll-missing/",
         enrollments.ProgramCatchUpView.as_view(),
         name="program-enroll-missing",
+    ),
+    path(
+        "certificates/<int:pk>/revoke/",
+        certificates.RevokeView.as_view(),
+        name="certificate-revoke",
+    ),
+    path(
+        "certificates/<int:pk>/restore/",
+        certificates.RestoreView.as_view(),
+        name="certificate-restore",
     ),
     path("courses/", courses.CourseListView.as_view(), name="courses"),
     path("courses/<int:course_id>/", courses.CourseDetailView.as_view(), name="course"),

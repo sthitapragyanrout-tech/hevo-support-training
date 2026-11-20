@@ -43,18 +43,18 @@ export function EnrollTarget({
             checked={target.kind === 'program'}
             onChange={() => onTarget({ kind: 'program', id: '' })}
           />
-          A whole program
+          A whole group
         </label>
       </fieldset>
       <label className={styles.field}>
-        <span>{target.kind === 'course' ? 'Course' : 'Program'}</span>
+        <span>{target.kind === 'course' ? 'Course' : 'Group'}</span>
         <select
           className="input"
           value={target.id}
           onChange={(e) => onTarget({ ...target, id: e.target.value })}
         >
           <option value="">
-            {target.kind === 'course' ? 'Choose a course' : 'Choose a program'}
+            {target.kind === 'course' ? 'Choose a course' : 'Choose a group'}
           </option>
           {target.kind === 'course'
             ? options.courses.map((c) => (

@@ -64,7 +64,7 @@
   font-size: var(--fs-14);
   font-weight: 400;
   background: var(--bg);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius);
 }
 

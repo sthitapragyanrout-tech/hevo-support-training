@@ -238,7 +238,7 @@ class TestPrograms:
     def test_validation(self, world, program):
         with pytest.raises(EnrollmentError, match="name"):
             services.save_program(None, name="  ")
-        with pytest.raises(Conflict, match="already a program"):
+        with pytest.raises(Conflict, match="already a group"):
             services.save_program(None, name="cohort a")
         with pytest.raises(EnrollmentError, match="before it starts"):
             import datetime
@@ -405,7 +405,7 @@ class TestBulk:
         assert lea_other.source == Enrollment.Source.PROGRAM
 
     def test_a_target_is_required_and_a_program_needs_courses(self, people):
-        with pytest.raises(EnrollmentError, match="Choose a course or a program"):
+        with pytest.raises(EnrollmentError, match="Choose a course or a group"):
             services.bulk("lea@e.com")
         empty = services.save_program(None, name="Empty")
         with pytest.raises(Conflict, match="no courses"):

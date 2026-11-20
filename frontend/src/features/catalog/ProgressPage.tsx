@@ -1,42 +1,20 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { PageState } from '../../components/PageState'
 import { ProgressBar } from '../../components/ProgressBar'
-import {
-  progressApi,
-  type ProgressCourse,
-  type ProgressQuiz,
-  type ProgressRated,
-  type ProgressTicket,
-} from '../../lib/api'
+import { progressApi, type ProgressCourse } from '../../lib/api'
 import { percent, shortDate } from './activities/quizTypes'
+import { OutlineLayout, ProgressOutline } from './ProgressOutline'
+import { ProgressScores } from './ProgressScores'
 import styles from './ProgressPage.module.css'
 import { pluralize } from './treeUtils'
 import { useAsync } from './useAsync'
-
-const QUIZ_STATUS: Record<ProgressQuiz['status'], string> = {
-  not_started: 'Not started',
-  in_progress: 'In progress',
-  passed: 'Passed',
-  not_passed: 'Not passed',
-  awaiting_review: 'Awaiting review',
-}
-
-const RATED_STATUS: Record<string, string> = {
-  not_submitted: 'Not handed in',
-  waiting: 'Waiting for a mentor',
-  changes_requested: 'Changes requested',
-  passed: 'Passed',
-  waived: 'Waived',
-  not_passed: 'Closed, not passed',
-}
-
-const outOfFive = (n: number) => `${Number(n.toFixed(2))} / 5`
 
 /** Your own results across the courses you are enrolled on: just the facts the platform records
  * about you. There is deliberately no overall score, pass/fail for a course or ranking here. */
 export function ProgressPage() {
   const { data, loading, error, reload } = useAsync(() => progressApi.summary(), 'progress-summary')
+  const [params] = useSearchParams()
 
   if (loading) return <PageState kind="loading" />
   if (error || !data) {
@@ -54,16 +32,67 @@ export function ProgressPage() {
     )
   }
 
+  // The course picked in the side panel (kept in the URL); else the one under way, else the
+  // first one not finished.
+  const chosen = Number(params.get('course'))
+  const selected =
+    data.courses.find((c) => c.course_id === chosen) ??
+    data.courses.find((c) => c.lessons_done > 0 && c.lessons_done < c.lessons_total) ??
+    data.courses.find((c) => c.lessons_done < c.lessons_total) ??
+    data.courses[0]
+  const done = data.courses.reduce((n, c) => n + c.lessons_done, 0)
+  const total = data.courses.reduce((n, c) => n + c.lessons_total, 0)
+  const waiting = data.courses.reduce((n, c) => n + c.lessons_awaiting_review, 0)
+
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <p className="eyebrow">Learning</p>
-        <h1 className={styles.heading}>My progress</h1>
-        <p className={styles.lede}>Where you are on each course, and how your work has gone.</p>
+    <div>
+      <header className={`ink band ${styles.hero}`}>
+        <div className={`page ${styles.heroInner}`}>
+          <div className={styles.header}>
+            <p className="eyebrow">Learning</p>
+            <h1 className={styles.heading}>My progress</h1>
+            <p className={styles.lede}>Where you are on each course, and how your work has gone.</p>
+          </div>
+          <dl className={styles.summary}>
+            <div>
+              <dt>Lessons complete</dt>
+              <dd>
+                <span className="num">{done}</span>
+                <small>of {total}</small>
+              </dd>
+            </div>
+            <div>
+              <dt>Courses</dt>
+              <dd>
+                <span className="num">{data.courses.length}</span>
+              </dd>
+            </div>
+            {waiting > 0 && (
+              <div>
+                <dt>Waiting for marks</dt>
+                <dd>
+                  <span className="num">{waiting}</span>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </div>
       </header>
-      {data.courses.map((course) => (
-        <CourseSection key={course.version_id} course={course} />
-      ))}
+      <div className={`page ${styles.body}`}>
+        <OutlineLayout
+          panel={
+            <ProgressOutline
+              label="Your courses"
+              courses={data.courses}
+              selected={selected}
+              courseHref={(id) => `/progress?course=${id}`}
+              lessonHref={(id) => `/courses/${selected.course_id}/lessons/${id}`}
+            />
+          }
+        >
+          <CourseSection key={selected.version_id} course={selected} />
+        </OutlineLayout>
+      </div>
     </div>
   )
 }
@@ -73,23 +102,41 @@ function CourseSection({ course }: { course: ProgressCourse }) {
   const lessonLink = (id: number) => `${base}/lessons/${id}`
   const complete = course.lessons_total > 0 && course.lessons_done === course.lessons_total
   const headingId = `course-${course.version_id}`
+  const fresh =
+    course.lessons_total === 0 ||
+    (course.lessons_done === 0 && course.lessons_awaiting_review === 0)
 
   return (
     <section className={styles.course} aria-labelledby={headingId}>
-      <h2 id={headingId} className={styles.courseTitle}>
-        <Link to={base}>{course.title}</Link>
-      </h2>
+      <div className={styles.courseHead}>
+        <h2 id={headingId} className={styles.courseTitle}>
+          <Link to={base}>{course.title}</Link>
+        </h2>
+        {!fresh && (
+          <span className={`num ${styles.pct}`} aria-hidden="true">
+            {Math.round((course.lessons_done / course.lessons_total) * 100)}
+            <small>%</small>
+          </span>
+        )}
+      </div>
       <div className={styles.overview}>
-        <ProgressBar
-          value={course.lessons_done}
-          max={course.lessons_total}
-          label={`${course.title} progress`}
-        />
-        <p className={styles.counts}>
-          {course.lessons_done} of {pluralize(course.lessons_total, 'lesson')} complete
-          {course.lessons_awaiting_review > 0 &&
-            ` · ${course.lessons_awaiting_review} waiting for marks or a rating`}
-        </p>
+        {fresh ? (
+          // Nothing done yet reads as words, never as 0% and an empty bar.
+          <p className={styles.counts}>Not started · {pluralize(course.lessons_total, 'lesson')}</p>
+        ) : (
+          <>
+            <ProgressBar
+              value={course.lessons_done}
+              max={course.lessons_total}
+              label={`${course.title} progress`}
+            />
+            <p className={styles.counts}>
+              {course.lessons_done} of {pluralize(course.lessons_total, 'lesson')} complete
+              {course.lessons_awaiting_review > 0 &&
+                ` · ${course.lessons_awaiting_review} waiting for marks or a rating`}
+            </p>
+          </>
+        )}
         <p className={styles.next}>
           {complete ? (
             'All lessons complete.'
@@ -103,146 +150,38 @@ function CourseSection({ course }: { course: ProgressCourse }) {
         </p>
       </div>
 
-      {course.quizzes.length > 0 && (
-        <Table label={`Quizzes in ${course.title}`} heading="Quizzes">
-          <thead>
-            <tr>
-              <th scope="col">Quiz</th>
-              <th scope="col">Status</th>
-              <th scope="col" className={styles.num}>
-                Attempts
-              </th>
-              <th scope="col" className={styles.num}>
-                Best
-              </th>
-              <th scope="col" className={styles.num}>
-                Latest
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {course.quizzes.map((q) => (
-              <tr key={q.activity_id}>
-                <th scope="row">
-                  <Link to={lessonLink(q.lesson_id)}>{q.title}</Link>
-                  <span className={styles.sub}>{q.lesson_title}</span>
-                </th>
-                <td>{QUIZ_STATUS[q.status]}</td>
-                <td className={styles.num}>
-                  {q.attempts_used}
-                  {q.max_attempts > 0 ? ` of ${q.max_attempts}` : ''}
-                </td>
-                <td className={styles.num}>{q.best == null ? '–' : percent(q.best)}</td>
-                <td className={styles.num}>{q.latest == null ? '–' : percent(q.latest)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+      <CertificateLine course={course} />
 
-      {course.practice.length > 0 && (
-        <Table label={`Practice tickets in ${course.title}`} heading="Practice tickets">
-          <thead>
-            <tr>
-              <th scope="col">Practice</th>
-              <th scope="col" className={styles.num}>
-                Finished
-              </th>
-              <th scope="col" className={styles.num}>
-                Average
-              </th>
-              <th scope="col">Recent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {course.practice.map((t) => (
-              <TicketRow key={t.activity_id} t={t} to={lessonLink(t.lesson_id)} />
-            ))}
-          </tbody>
-        </Table>
-      )}
-
-      {course.rated.length > 0 && (
-        <Table label={`Mentor-rated work in ${course.title}`} heading="Mentor-rated work">
-          <thead>
-            <tr>
-              <th scope="col">Work</th>
-              <th scope="col">Status</th>
-              <th scope="col" className={styles.num}>
-                Score
-              </th>
-              <th scope="col">Feedback</th>
-            </tr>
-          </thead>
-          <tbody>
-            {course.rated.map((r) => (
-              <RatedRow key={r.activity_id} r={r} to={lessonLink(r.lesson_id)} />
-            ))}
-          </tbody>
-        </Table>
-      )}
+      <ProgressScores course={course} hrefOf={(item) => lessonLink(item.lesson_id)} />
     </section>
   )
 }
 
-function Table({
-  label,
-  heading,
-  children,
-}: {
-  label: string
-  heading: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className={styles.block}>
-      <h3 className={styles.blockTitle}>{heading}</h3>
-      <div className={styles.scroll}>
-        <table className={styles.table} aria-label={label}>
-          {children}
-        </table>
-      </div>
-    </div>
-  )
-}
+const KIND = { quiz: 'quizzes', practice: 'practice tickets', rated: 'mentor-rated work' }
 
-function TicketRow({ t, to }: { t: ProgressTicket; to: string }) {
+/** The course's certificate, when it has one: earned (with a link), or the course score so far
+ * against what is needed, and what is still missing. Nothing at all when it isn't switched on. */
+function CertificateLine({ course }: { course: ProgressCourse }) {
+  const c = course.certification
+  if (c.certificate) {
+    return (
+      <p className={`${styles.cert} ${styles.certEarned}`}>
+        <strong>Certificate earned</strong> on {shortDate(c.certificate.issued_at)} ·{' '}
+        <Link to={`/certificates/${c.certificate.code}`}>View certificate</Link>
+      </p>
+    )
+  }
+  if (!c.enabled) return null
+  const left = course.lessons_total - course.lessons_done
   return (
-    <tr>
-      <th scope="row">
-        <Link to={to}>{t.title}</Link>
-        <span className={styles.sub}>
-          {t.lesson_title}
-          {t.in_progress ? ' · a ticket is in progress' : ''}
-        </span>
-      </th>
-      <td className={styles.num}>{t.finished}</td>
-      <td className={styles.num}>{t.average == null ? '–' : outOfFive(t.average)}</td>
-      <td>
-        {t.recent.length === 0
-          ? '–'
-          : t.recent.map((r) => `${outOfFive(r.score)} (${shortDate(r.at)})`).join(' · ')}
-      </td>
-    </tr>
-  )
-}
-
-function RatedRow({ r, to }: { r: ProgressRated; to: string }) {
-  return (
-    <tr>
-      <th scope="row">
-        <Link to={to}>{r.title}</Link>
-        <span className={styles.sub}>{r.lesson_title}</span>
-      </th>
-      <td>
-        {RATED_STATUS[r.status] ?? r.status}
-        {r.overdue && <span className={styles.sub}>past its deadline</span>}
-        {r.due_at && !r.overdue && ['not_submitted', 'changes_requested'].includes(r.status) && (
-          <span className={styles.sub}>due {shortDate(r.due_at)}</span>
-        )}
-      </td>
-      <td className={styles.num}>{r.last_score == null ? '–' : outOfFive(r.last_score)}</td>
-      <td className={styles.feedback}>{r.feedback ?? '–'}</td>
-    </tr>
+    <p className={styles.cert}>
+      <strong>Certificate</strong>
+      {' · '}
+      {c.score === null
+        ? `pass mark ${c.threshold}%`
+        : `course score so far ${percent(c.score)} · pass mark ${c.threshold}%`}
+      {left > 0 && ` · finish the course to earn it`}
+      {c.missing.length > 0 && ` · still to do: ${c.missing.map((k) => KIND[k]).join(', ')}`}
+    </p>
   )
 }

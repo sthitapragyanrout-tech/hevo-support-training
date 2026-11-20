@@ -1,7 +1,10 @@
 from .base import *  # noqa: F401,F403
 
 DEBUG = True
-ALLOW_ATTEMPT_RESET = True
+# Learners can't wipe their own quiz attempts, even in dev (that defeats the attempt limit).
+# Trainers and admins reset attempts from the Admin console. Set this to True locally only if
+# you need to re-take a quiz yourself while testing.
+ALLOW_ATTEMPT_RESET = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 

@@ -11,7 +11,7 @@
   align-self: start;
   height: calc(100svh - var(--header-h));
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--bg);
   border-right: 1px solid var(--border);
 }
 
@@ -62,7 +62,7 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(12, 16, 36, 0.55);
 }
 
 .drawer {
@@ -73,7 +73,7 @@
   z-index: 50;
   width: min(320px, 88vw);
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--bg);
   box-shadow: var(--shadow-pop);
 }
 

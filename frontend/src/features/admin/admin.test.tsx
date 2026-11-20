@@ -41,6 +41,7 @@ const DETAIL = {
   courses: [
     {
       course_id: 1,
+      version_id: 10,
       title: 'CX Onboarding',
       version: 1,
       state: 'published',
@@ -52,6 +53,7 @@ const DETAIL = {
           title: 'Read the docs',
           type: 'reading',
           lesson: 'Pipelines',
+          lesson_id: 201,
           required: true,
           state: 'completed',
           scored: false,
@@ -64,6 +66,7 @@ const DETAIL = {
           title: 'Sources quiz',
           type: 'mcq',
           lesson: 'Pipelines',
+          lesson_id: 201,
           required: true,
           state: 'exhausted',
           scored: true,
@@ -78,6 +81,116 @@ const DETAIL = {
     },
   ],
 }
+
+const ENROLLED = {
+  course_id: 1,
+  version_id: 10,
+  enrollment_id: 31,
+  version: 1,
+  title: 'CX Onboarding',
+  group: { id: 5, name: 'L1' },
+  lessons_total: 3,
+  lessons_done: 2,
+  lessons_awaiting_review: 0,
+  required_lessons_left: 1,
+  next_lesson: null,
+  quiz_score: 0.5,
+  modules: [
+    {
+      id: 101,
+      title: 'Pipelines',
+      lessons_total: 3,
+      lessons_done: 2,
+      lessons_awaiting_review: 0,
+      state: 'in_progress',
+      next_lesson: null,
+      lessons: [
+        { id: 201, title: 'Pipelines', required: true, state: 'done' },
+        { id: 202, title: 'Wrap-up', required: true, state: 'not_started' },
+      ],
+    },
+  ],
+  quizzes: [
+    {
+      activity_id: 6,
+      lesson_id: 201,
+      lesson_title: 'Pipelines',
+      title: 'Sources quiz',
+      required: true,
+      status: 'not_passed',
+      attempts_used: 2,
+      max_attempts: 2,
+      best: 0.5,
+      latest: 0.5,
+    },
+  ],
+  practice: [],
+  rated: [
+    {
+      activity_id: 8,
+      lesson_id: 201,
+      lesson_title: 'Pipelines',
+      title: 'Reply to a customer',
+      required: true,
+      status: 'passed',
+      revisions: 1,
+      last_score: 4.25,
+      due_at: null,
+      overdue: false,
+      feedback: 'Clear and kind.',
+      rated_at: '2026-10-21T10:00:00Z',
+    },
+  ],
+  certification: { enabled: false, certificate: null },
+}
+
+Object.assign(DETAIL, { enrolled: [ENROLLED], certificates: [] })
+
+const ROWS = [
+  {
+    enrollment_id: 31,
+    user_id: 11,
+    name: 'Ann Ames',
+    email: 'ann@example.com',
+    employee_id: 'E11',
+    course: { id: 1, title: 'CX Onboarding' },
+    group: { id: 5, name: 'L1' },
+    lessons_done: 2,
+    lessons_total: 3,
+    progress: 2 / 3,
+    quiz_score: 0.5,
+    course_score: 0.62,
+    certificate_on: true,
+    threshold: 70,
+    certificate: null,
+    last_activity: '2026-10-20T10:00:00Z',
+  },
+  {
+    enrollment_id: 32,
+    user_id: 12,
+    name: 'bob@example.com',
+    email: 'bob@example.com',
+    employee_id: null,
+    course: { id: 1, title: 'CX Onboarding' },
+    group: null,
+    lessons_done: 3,
+    lessons_total: 3,
+    progress: 1,
+    quiz_score: null,
+    course_score: null,
+    certificate_on: false,
+    threshold: null,
+    certificate: { id: 9, code: 'ABCDEFGHJK', issued_at: '2026-10-21T10:00:00Z', score: 0.9 },
+    last_activity: null,
+  },
+]
+
+const dashboard = (rows: object[] = ROWS, extra: object = {}) => ({
+  ...page(rows),
+  totals: { learners: rows.length, enrollments: rows.length, certificates: 1, courses: 1 },
+  groups: [{ id: 5, name: 'L1' }],
+  ...extra,
+})
 
 describe('Console entry', () => {
   it('shows the Admin link only to people who may use it', async () => {
@@ -134,24 +247,28 @@ describe('Console entry', () => {
   })
 })
 
-describe('Dashboard (a placeholder for now)', () => {
-  it('is the first item under Results for someone who may see results', async () => {
-    mockApi([VIEW], {})
+describe('Dashboard', () => {
+  const routes = (handler?: Handler) => ({
+    'GET /api/v1/admin/results/courses/': COURSES,
+    'GET /api/v1/admin/results/dashboard/': handler ?? (() => ({ body: dashboard() })),
+  })
+
+  it('is the first item under Results, and the old Learners list is gone from the rail', async () => {
+    mockApi([VIEW], routes())
     renderAt('/admin/results/dashboard')
     const rail = await screen.findByRole('navigation', { name: 'Admin sections' })
     const items = within(rail).getAllByRole('link').map((a) => a.textContent)
-    expect(items.slice(0, 3)).toEqual(['Dashboard', 'Learners', 'Quizzes'])
+    expect(items.slice(0, 2)).toEqual(['Dashboard', 'Quizzes'])
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
-  it('says plainly that it is not built, shows no numbers, and points to where results are', async () => {
-    mockApi([VIEW], {})
-    renderAt('/admin/results/dashboard')
-    expect(await screen.findByText('Not built yet.')).toBeInTheDocument()
-    const content = screen.getByText('Not built yet.').closest('p')?.parentElement as HTMLElement
-    expect(content.textContent).not.toMatch(/\d/) // nothing that could be mistaken for a result
-    expect(within(content).getByRole('link', { name: 'Learners' })).toHaveAttribute('href', '/admin/results/learners')
-    expect(within(content).getByRole('link', { name: 'Quizzes' })).toHaveAttribute('href', '/admin/results/quizzes')
+  it('is where the Admin landing page and the old Learners link now go', async () => {
+    mockApi([VIEW], routes())
+    renderAt('/admin')
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    mockApi([VIEW], routes())
+    renderAt('/admin/results/learners')
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
   it('is not in the rail, and cannot be opened, without the right to see results', async () => {
@@ -161,106 +278,113 @@ describe('Dashboard (a placeholder for now)', () => {
     expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 
-  it('leaves the Admin landing page where it was: Learners', async () => {
-    mockApi([VIEW], {
-      'GET /api/v1/admin/results/learners/': page(LEARNERS),
-      'GET /api/v1/admin/results/courses/': COURSES,
-    })
-    renderAt('/admin')
-    expect(await screen.findByRole('heading', { name: 'Learners' })).toBeInTheDocument()
-  })
-})
-
-describe('Learners', () => {
-  const routes = (handler?: Handler) => ({
-    'GET /api/v1/admin/results/courses/': COURSES,
-    'GET /api/v1/admin/results/learners/': handler ?? (() => ({ body: page(LEARNERS) })),
-  })
-
-  it('lists learners with their numbers, linking to each one', async () => {
+  it('lists name, emp id, course, group, progress and scores, each row opening the person', async () => {
     mockApi([VIEW], routes())
-    renderAt('/admin/results/learners')
+    renderAt('/admin/results/dashboard')
     const link = await screen.findByRole('link', { name: /Ann Ames/ })
-    expect(link).toHaveAttribute('href', '/admin/results/learners/11')
-    const row = link.closest('tr')!
-    expect(row).toHaveTextContent('2')
-    expect(row).toHaveTextContent('3')
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)
+    expect(link).toHaveAttribute('href', '/admin/results/learners/11?course=1')
+    const ann = link.closest('tr')!
+    for (const text of ['E11', 'CX Onboarding', 'L1', '2 of 3', '50%', '62%', 'pass mark 70%']) {
+      expect(ann).toHaveTextContent(text)
+    }
+    expect(within(ann).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
+    const bob = screen.getByRole('link', { name: /bob@example.com/ }).closest('tr')!
+    expect(bob).toHaveTextContent('Earned')
+    expect(bob).toHaveTextContent('Not set up')
+    const totals = screen.getByText('Certificates earned').closest('div')!
+    expect(totals).toHaveTextContent('1')
   })
 
-  it('searches after the typing settles, back from page one', async () => {
-    const calls = mockApi([VIEW], routes())
-    renderAt('/admin/results/learners')
-    await screen.findByRole('link', { name: /Ann Ames/ })
-    fireEvent.change(screen.getByLabelText('Search learners'), { target: { value: 'ames' } })
-    await waitFor(() =>
-      expect(
-        calls.some((c) => c.path.endsWith('/results/learners/') && c.query.get('search') === 'ames'),
-      ).toBe(true),
-    )
+  it('says "Not started" for someone with nothing done, with no empty bar', async () => {
+    mockApi([VIEW], routes(() => ({ body: dashboard([{ ...ROWS[0], lessons_done: 0, progress: 0 }]) })))
+    renderAt('/admin/results/dashboard')
+    const row = (await screen.findByRole('link', { name: /Ann Ames/ })).closest('tr')!
+    expect(row).toHaveTextContent('Not started · 3 lessons')
+    expect(within(row).queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
-  it('filters by course and points the export at the same course', async () => {
+  it('sorts by progress and quiz score from the column headers', async () => {
     const calls = mockApi([VIEW], routes())
-    renderAt('/admin/results/learners')
+    renderAt('/admin/results/dashboard')
     await screen.findByRole('link', { name: /Ann Ames/ })
-    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
-      'href',
-      '/api/v1/admin/results/export/',
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Progress' }))
+    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === 'progress')).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Progress' }))
+    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === '-progress')).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Quiz score' }))
+    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === 'quiz')).toBe(true))
+  })
+
+  it('sorts from a "Sort by" menu too, and every sortable header shows it can be clicked', async () => {
+    const calls = mockApi([VIEW], routes())
+    renderAt('/admin/results/dashboard')
+    await screen.findByRole('link', { name: /Ann Ames/ })
+    const menu = screen.getByLabelText('Sort by') as HTMLSelectElement
+    expect(menu.value).toBe('name')
+    fireEvent.change(menu, { target: { value: '-quiz' } })
+    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === '-quiz')).toBe(true))
+    // A header click and the menu are one setting.
+    fireEvent.click(screen.getByRole('button', { name: 'Group' }))
+    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === 'group')).toBe(true))
+    expect(menu.value).toBe('group')
+    expect(menu).toHaveTextContent('Sort: Group, ascending')
+    for (const name of ['Employee', 'Progress', 'Quiz score', 'Course score']) {
+      const button = screen.getByRole('button', { name })
+      expect(button).toHaveAttribute('title', `Sort by ${name.toLowerCase()}`)
+      expect(button.querySelector('svg')).not.toBeNull()
+    }
+  })
+
+  it('filters by search, course, group and certificate, and the export follows the filters', async () => {
+    const calls = mockApi([VIEW], routes())
+    renderAt('/admin/results/dashboard')
+    await screen.findByRole('link', { name: /Ann Ames/ })
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'ames' } })
+    await waitFor(() => expect(calls.some((c) => c.query.get('search') === 'ames')).toBe(true))
     await screen.findByRole('option', { name: 'Escalations' })
     fireEvent.change(screen.getByLabelText('Course'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Group'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Certificate'), { target: { value: 'yes' } })
     await waitFor(() =>
-      expect(calls.some((c) => c.query.get('course') === '2' && c.path.endsWith('/learners/'))).toBe(true),
+      expect(
+        calls.some(
+          (c) =>
+            c.query.get('course') === '2' &&
+            c.query.get('group') === '5' &&
+            c.query.get('certified') === 'yes',
+        ),
+      ).toBe(true),
     )
-    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute(
+    const href = screen.getByRole('link', { name: 'Export this list' }).getAttribute('href')!
+    const query = new URLSearchParams(href.split('?')[1])
+    expect(query.get('export')).toBe('csv')
+    expect(query.get('group')).toBe('5')
+    expect(screen.getByRole('link', { name: 'Export every attempt' })).toHaveAttribute(
       'href',
       '/api/v1/admin/results/export/?course=2',
     )
   })
 
-  it('sorts from the column header', async () => {
+  it('offers "No group" as a filter', async () => {
     const calls = mockApi([VIEW], routes())
-    renderAt('/admin/results/learners')
-    await screen.findByRole('link', { name: /Ann Ames/ })
-    fireEvent.click(screen.getByRole('button', { name: 'Quiz attempts' }))
-    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === 'attempts')).toBe(true))
-    fireEvent.click(screen.getByRole('button', { name: 'Quiz attempts' }))
-    await waitFor(() => expect(calls.some((c) => c.query.get('ordering') === '-attempts')).toBe(true))
+    renderAt('/admin/results/dashboard')
+    await screen.findByRole('option', { name: 'L1' })
+    fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'none' } })
+    await waitFor(() => expect(calls.some((c) => c.query.get('group') === 'none')).toBe(true))
   })
 
-  it('pages through the results', async () => {
-    const calls = mockApi(
-      [VIEW],
-      routes((c) => ({
-        body:
-          c.query.get('page') === '2'
-            ? page([LEARNERS[1]], { page: 2, pages: 2, count: 3 })
-            : page([LEARNERS[0]], { pages: 2, count: 3 }),
-      })),
-    )
-    renderAt('/admin/results/learners')
-    await screen.findByRole('link', { name: /Ann Ames/ })
-    expect(screen.getByText(/3 in total · page 1 of 2/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(await screen.findByText(/page 2 of 2/)).toBeInTheDocument()
-    expect(calls.some((c) => c.query.get('page') === '2')).toBe(true)
-  })
-
-  it('says so when nothing matches, and when nobody has started', async () => {
-    mockApi([VIEW], routes(() => ({ body: page([]) })))
-    renderAt('/admin/results/learners')
-    expect(await screen.findByText('Nobody has started a course yet.')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Search learners'), { target: { value: 'zzz' } })
-    expect(await screen.findByText('No learners match.')).toBeInTheDocument()
+  it('says so when nobody is enrolled, and when nothing matches', async () => {
+    mockApi([VIEW], routes(() => ({ body: dashboard([]) })))
+    renderAt('/admin/results/dashboard')
+    expect(await screen.findByText('Nobody is enrolled on a course yet.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value: 'zzz' } })
+    expect(await screen.findByText('Nobody matches.')).toBeInTheDocument()
   })
 
   it('shows a retry when the list cannot load', async () => {
     mockApi([VIEW], routes(() => ({ status: 500, body: { detail: 'Boom.' } })))
-    renderAt('/admin/results/learners')
-    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t load learners')
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    renderAt('/admin/results/dashboard')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t load the dashboard')
   })
 })
 
@@ -273,7 +397,12 @@ describe('Learner detail', () => {
     mockApi([VIEW], base)
     renderAt('/admin/results/learners/11')
     expect(await screen.findByRole('heading', { name: 'Ann Ames' })).toBeInTheDocument()
-    expect(screen.getByText('2 of 3 lessons completed')).toBeInTheDocument()
+    const course = screen.getByRole('region', { name: 'CX Onboarding' })
+    expect(within(course).getByText('2 of 3 lessons')).toBeInTheDocument()
+    expect(screen.getByText(/Group L1/)).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Modules in CX Onboarding' })).toHaveTextContent(
+      'In progress · 2 of 3 lessons done',
+    )
     expect(screen.getByText('Read')).toBeInTheDocument() // the reading, completed
     expect(screen.getAllByText('Not passed').length).toBeGreaterThan(0)
     expect(screen.getByText('Best 50%')).toBeInTheDocument()
@@ -282,6 +411,42 @@ describe('Learner detail', () => {
     expect(within(attempts).getAllByRole('listitem')).toHaveLength(2)
     expect(attempts).toHaveTextContent('0%')
     expect(attempts).toHaveTextContent('50%')
+  })
+
+  it('puts the courses and modules in a side panel, lessons jumping to their activities', async () => {
+    mockApi([VIEW], base)
+    renderAt('/admin/results/learners/11')
+    const panel = await screen.findByRole('navigation', { name: 'Courses for Ann Ames' })
+    expect(within(panel).getByRole('link', { name: /CX Onboarding/ })).toHaveAttribute(
+      'href',
+      '/admin/results/learners/11?course=1',
+    )
+    const lessons = within(panel).getByRole('list', { name: 'Lessons in Pipelines' })
+    expect(within(lessons).getByRole('link', { name: 'Pipelines' })).toHaveAttribute(
+      'href',
+      '#lesson-201',
+    )
+    // A lesson with nothing to show below is plain text, not a dead link.
+    expect(within(lessons).queryByRole('link', { name: 'Wrap-up' })).toBeNull()
+    expect(document.getElementById('lesson-201')).toHaveTextContent('Sources quiz')
+  })
+
+  it('shows the same score tables as My progress, with the mentor’s score, then the detail', async () => {
+    mockApi([VIEW], base)
+    renderAt('/admin/results/learners/11')
+    const quizzes = await screen.findByRole('table', { name: 'Quizzes in CX Onboarding' })
+    expect(within(quizzes).getByRole('link', { name: 'Sources quiz' })).toHaveAttribute(
+      'href',
+      '#activity-6',
+    )
+    const rated = screen.getByRole('table', { name: 'Mentor-rated work in CX Onboarding' })
+    expect(within(rated).getByRole('columnheader', { name: 'Score' })).toBeInTheDocument()
+    expect(rated).toHaveTextContent('4.25 / 5')
+    expect(rated).toHaveTextContent('Clear and kind.')
+    const heading = screen.getByRole('heading', { name: 'Activities, attempts and ratings' })
+    expect(
+      quizzes.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 
   it('shows how much of a video was watched, and why it deserves a look', async () => {
@@ -402,7 +567,7 @@ describe('Learner detail', () => {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
     await waitFor(() => expect(screen.queryByText('Best 50%')).not.toBeInTheDocument())
     expect(screen.queryByRole('button', { name: 'Reset attempts' })).not.toBeInTheDocument()
-    expect(screen.getByText('Not started')).toBeInTheDocument()
+    expect(document.getElementById('activity-6')).toHaveTextContent('Not started')
   })
 
   it('cancelling leaves everything alone', async () => {
@@ -434,10 +599,115 @@ describe('Learner detail', () => {
     expect(await screen.findByText('Learner not found')).toBeInTheDocument()
   })
 
-  it('says so when the learner has not started anything', async () => {
-    mockApi([VIEW], { 'GET /api/v1/admin/results/learners/11/': { body: { ...DETAIL, courses: [] } } })
+  it('says so when the learner is not on a course now', async () => {
+    mockApi([VIEW], {
+      'GET /api/v1/admin/results/learners/11/': { body: { ...DETAIL, courses: [], enrolled: [] } },
+    })
     renderAt('/admin/results/learners/11')
-    expect(await screen.findByText('Ann Ames hasn’t started a course yet.')).toBeInTheDocument()
+    expect(await screen.findByText('Ann Ames isn’t enrolled on a course right now.')).toBeInTheDocument()
+  })
+
+  it('folds work on an older version under Earlier versions, out of the current course', async () => {
+    const older = { ...DETAIL.courses[0], version_id: 9, version: 0, title: 'CX Onboarding' }
+    mockApi([VIEW], {
+      'GET /api/v1/admin/results/learners/11/': { body: { ...DETAIL, courses: [older, DETAIL.courses[0]] } },
+    })
+    renderAt('/admin/results/learners/11')
+    const summary = await screen.findByText(/Earlier versions and past courses \(1\)/)
+    const earlier = summary.closest('details')!
+    expect(earlier).not.toHaveAttribute('open')
+    expect(within(earlier).getByText('2 of 3 lessons completed')).toBeInTheDocument()
+  })
+
+  it('opens the course they came from, with the others in the side panel', async () => {
+    const second = { ...ENROLLED, course_id: 2, version_id: 20, enrollment_id: 32, title: 'Escalations' }
+    mockApi([VIEW], {
+      'GET /api/v1/admin/results/learners/11/': { body: { ...DETAIL, enrolled: [ENROLLED, second] } },
+    })
+    renderAt('/admin/results/learners/11?course=2')
+    expect(await screen.findByRole('region', { name: 'Escalations' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'CX Onboarding' })).toBeNull()
+    // The other course is one click away in the side panel.
+    const panel = screen.getByRole('navigation', { name: 'Courses for Ann Ames' })
+    fireEvent.click(within(panel).getByRole('link', { name: /CX Onboarding/ }))
+    expect(await screen.findByRole('region', { name: 'CX Onboarding' })).toBeInTheDocument()
+  })
+
+  it('shows the course score breakdown and lets a manager revoke the certificate with a reason', async () => {
+    const cert = {
+      id: 9,
+      code: 'ABCDEFGHJK',
+      name: 'Ann Ames',
+      employee_id: null,
+      course_title: 'CX Onboarding',
+      course_id: 1,
+      issued_at: '2026-10-21T10:00:00Z',
+      score: 0.9,
+      threshold: 70,
+      revoked: false,
+      revoked_at: null,
+      revoked_reason: '',
+    }
+    const withCert = {
+      ...DETAIL,
+      certificates: [cert],
+      enrolled: [
+        {
+          ...ENROLLED,
+          certification: {
+            enabled: true,
+            threshold: 70,
+            score: 0.9,
+            missing: [],
+            eligible: true,
+            parts: {
+              quiz: { average: 0.9, scored: 2, items: 2, weight: 1 },
+              practice: { average: null, scored: 0, items: 0, weight: 1 },
+              rated: { average: 0.8, scored: 1, items: 1, weight: 0 },
+            },
+            certificate: { id: 9, code: 'ABCDEFGHJK', issued_at: cert.issued_at, score: 0.9 },
+          },
+        },
+      ],
+    }
+    const calls = mockApi([VIEW, 'enrollment.manage_enrollments'], {
+      'GET /api/v1/admin/results/learners/11/': { body: withCert },
+      'POST /api/v1/admin/certificates/9/revoke/': { body: { ...cert, revoked: true } },
+    })
+    renderAt('/admin/results/learners/11')
+    const panel = await screen.findByLabelText('Certificate')
+    expect(panel).toHaveTextContent('Earned')
+    expect(within(panel).getByRole('link', { name: 'ABCDEFGHJK' })).toHaveAttribute(
+      'href',
+      '/certificates/ABCDEFGHJK',
+    )
+    const parts = within(panel).getByRole('list', { name: 'How the course score is made up' })
+    expect(parts).toHaveTextContent('Quizzes90%')
+    expect(parts).toHaveTextContent('not counted')
+    expect(parts).not.toHaveTextContent('Practice tickets')
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Revoke' }))
+    const dialog = await screen.findByRole('alertdialog')
+    const confirm = within(dialog).getByRole('button', { name: 'Revoke' })
+    expect(confirm).toBeDisabled()
+    fireEvent.change(within(dialog).getByLabelText('Reason'), { target: { value: 'Copied' } })
+    fireEvent.click(confirm)
+    await waitFor(() =>
+      expect(calls.find((c) => c.path.endsWith('/revoke/'))?.body).toEqual({ reason: 'Copied' }),
+    )
+  })
+
+  it('offers no revoke to someone who may only view results', async () => {
+    const cert = {
+      id: 9, code: 'ABCDEFGHJK', name: 'Ann Ames', employee_id: null, course_title: 'CX Onboarding',
+      course_id: 1, issued_at: '2026-10-21T10:00:00Z', score: 0.9, threshold: 70, revoked: false,
+    }
+    mockApi([VIEW], {
+      'GET /api/v1/admin/results/learners/11/': { body: { ...DETAIL, certificates: [cert] } },
+    })
+    renderAt('/admin/results/learners/11')
+    await screen.findByLabelText('Certificate')
+    expect(screen.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument()
   })
 })
 

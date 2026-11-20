@@ -28,7 +28,7 @@
 }
 
 .current {
-  color: #fff;
+  color: var(--on-accent, #fff);
   background: var(--accent);
   border-color: var(--accent);
 }

@@ -1,53 +1,102 @@
 :root {
-  /* Color — one restrained accent (Hevo teal), slate neutrals. */
-  --accent: #205067;
-  --accent-hover: #183c4e;
-  --accent-tint: #eef4f7;
-  --text: #0f172a;
-  --text-body: #334155;
-  --text-muted: #64748b; /* 4.76:1 on white */
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --surface: #f8fafc;
-  --surface-2: #f1f5f9;
-  --bg: #ffffff;
-  --accent-tint-strong: #dfebf1;
-  --success: #15803d;
-  --warning: #b45309;
-  --warning-tint: #fdf6ea; /* pitfall callout only — the one non-teal accent */
-  --danger: #b42318;
+  /* ── Colour ─────────────────────────────────────────────────────────────
+   * "Ink and signal". Two kinds of surface:
+   *   light — a cool-paper canvas with white where something needs lifting;
+   *   ink   — deep navy bands (header, heroes, login) where `--signal` lime
+   *           is the one bright thing on the page.
+   * Actions on light are ultramarine. Every pair below is checked for contrast.
+   * Components never name a colour; they use the semantic tokens, and the
+   * `.ink` class (base.css) re-points those tokens for dark surfaces. */
+  --accent: #3b3be6; /* actions, links, focus — 6.9:1 on white */
+  --accent-hover: #2b2bc2;
+  --accent-tint: #ededfd;
+  --accent-tint-strong: #dcdcfa;
 
-  /* Type */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --text: #0c1024; /* headings */
+  --text-body: #2b3250; /* reading text — 11:1 on white */
+  --text-muted: #565e80; /* 6.4:1 on white, 5.6:1 on canvas */
+  --border: #e1e4f0;
+  --border-strong: #c7ccdf; /* dividers and quiet outlines */
+  --control-border: #8089a8; /* the edge of an input: 3.5:1 on white, so a field is findable */
+  --canvas: #f0f1f8; /* the page itself */
+  --bg: #ffffff; /* anything lifted off the canvas */
+  --surface: #f5f6fb; /* a quiet tint inside a white surface */
+  --surface-2: #eaecf6; /* hover / pressed */
+
+  --success: #0c7a52;
+  --success-tint: #e1f5ec;
+  --warning: #a84f08;
+  --warning-tint: #fdf0dc;
+  --danger: #bf2419;
+  --danger-tint: #fdeae8;
+
+  /* The dark side. */
+  --ink: #0c1024;
+  --ink-2: #141a36;
+  --ink-3: #1e2548;
+  --ink-line: rgba(255, 255, 255, 0.11);
+  --ink-text: #f3f4fc;
+  --ink-body: #cfd4ec;
+  --ink-muted: #a6aed2; /* 8.6:1 on --ink, 5.1:1 on the glass panels */
+  --signal: #c9f55c; /* the bright thing; used on ink only */
+  --signal-strong: #b5e33f;
+  --signal-ink: #16200a; /* text on a signal fill */
+
+  /* Type — a characterful display face for headings and numerals, a clean
+   * humanist sans for reading. Both are self-hosted (see main.tsx). */
+  --font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', system-ui,
+    -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-11: 0.6875rem;
   --fs-12: 0.75rem;
   --fs-13: 0.8125rem;
   --fs-14: 0.875rem;
   --fs-15: 0.9375rem;
+  --fs-16: 1rem;
   --fs-18: 1.125rem;
   --fs-20: 1.25rem;
   --fs-22: 1.375rem;
   --fs-28: 1.75rem;
+  --fs-34: 2.125rem;
+  --fs-44: 2.75rem;
+  --fs-60: 3.75rem;
 
   /* Spacing */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
+  --sp-5: 20px;
   --sp-6: 24px;
   --sp-8: 32px;
+  --sp-10: 40px;
   --sp-12: 48px;
   --sp-16: 64px;
+  --sp-20: 80px;
 
-  /* Shape */
-  --radius: 4px;
-  --radius-lg: 6px;
-  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-pop: 0 4px 16px rgba(15, 23, 42, 0.12);
+  /* Shape and depth. Three real levels of elevation, not one hairline. */
+  --radius: 8px; /* controls */
+  --radius-lg: 14px; /* panels */
+  --radius-xl: 22px; /* heroes */
+  --shadow-1: 0 1px 2px rgba(12, 16, 36, 0.06), 0 0 0 1px rgba(12, 16, 36, 0.03);
+  --shadow-2: 0 1px 2px rgba(12, 16, 36, 0.05), 0 6px 20px -6px rgba(12, 16, 36, 0.12);
+  --shadow-pop: 0 2px 6px rgba(12, 16, 36, 0.08), 0 18px 44px -10px rgba(12, 16, 36, 0.3);
+  --ring: 0 0 0 3px rgba(59, 59, 230, 0.22);
 
   /* Layout */
-  --header-h: 56px;
-  --control-h: 36px;
-  --sidebar-w: 280px;
-  --measure: 70ch;
+  --header-h: 60px;
+  --control-h: 38px;
+  --sidebar-w: 288px;
+  --measure: 68ch;
+  --page-w: 1240px; /* the widest a page's content runs */
+  --page-pad: clamp(16px, 3.2vw, 40px);
+}
+
+/* On phones the header grows a second row for the navigation. */
+@media (max-width: 700px) {
+  :root {
+    --header-h: 104px;
+  }
 }
