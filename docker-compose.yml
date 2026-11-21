@@ -28,6 +28,7 @@ services:
     env_file:
       - .env
     environment: &media-env
+      DJANGO_SETTINGS_MODULE: config.settings.dev
       CELERY_BROKER_URL: redis://redis:6379/0
       MEDIA_ROOT: /var/media
     volumes:
@@ -100,6 +101,5 @@ volumes:
   pgdata:
   media:
 
-# `simbot` and `nginx` are intentionally not defined yet — no bot service until
-# M4, and prod-grade reverse-proxy/serving is M6. See docs/architecture.md
-# §13-14.
+# This file is for development. The production stack (gunicorn, nginx, no source
+# mounts) is docker-compose.prod.yml — see DEPLOY.md.

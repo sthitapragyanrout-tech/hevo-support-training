@@ -23,6 +23,7 @@ frontend/.vite/
 
 # Env
 .env
+.env.prod
 *.local
 
 # OS
@@ -30,3 +31,8 @@ frontend/.vite/
 
 # Celery filesystem broker (development only)
 backend/.celery-broker/
+
+# Production: certificates and database dumps stay on the server
+deploy/nginx/certs/*
+!deploy/nginx/certs/.gitkeep
+backups/

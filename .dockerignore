@@ -1,0 +1,11 @@
+# Build context for deploy/nginx/Dockerfile (the frontend): only frontend/ is needed.
+.git/
+.env
+.env.*
+*.local
+backend/
+simbot/
+docs/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/

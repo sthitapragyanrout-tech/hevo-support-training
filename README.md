@@ -242,6 +242,7 @@ deploy/              nginx, systemd and backup notes for production
 
 ## Production
 
-`docker-compose.yml` and `backend/Dockerfile` describe the container deployment (web, worker, Redis, Postgres);
-`deploy/` has nginx, systemd and backup notes. The Docker path has not been exercised on the development
-machine, and backups/monitoring are not implemented yet (see the roadmap in the architecture doc).
+See **[DEPLOY.md](DEPLOY.md)**: one Linux server with Docker runs everything
+(`docker-compose.prod.yml`: web, workers, Postgres, Redis and nginx serving the frontend).
+Settings go in `.env.prod` (template: `.env.prod.example`); backups via `make backup`.
+Monitoring and off-server backups are not set up yet (listed at the end of DEPLOY.md).

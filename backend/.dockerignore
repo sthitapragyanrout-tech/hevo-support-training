@@ -1,0 +1,15 @@
+# Never bake secrets, local data or build junk into the image.
+.env
+.env.*
+*.local
+.venv/
+media/
+staticfiles/
+.celery-broker/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/

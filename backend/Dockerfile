@@ -14,7 +14,8 @@ RUN uv sync --frozen --no-dev
 COPY . .
 
 ENV PATH="/app/.venv/bin:$PATH"
-ENV DJANGO_SETTINGS_MODULE=config.settings.dev
+# Production unless told otherwise; docker-compose.yml (development) sets config.settings.dev.
+ENV DJANGO_SETTINGS_MODULE=config.settings.prod
 
 EXPOSE 8000
 

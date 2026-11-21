@@ -2,6 +2,7 @@
 caps: the model is called carefully, and a provider problem never reaches a
 learner as anything but a plain sentence."""
 
+import sys
 from datetime import timedelta
 
 import pytest
@@ -241,13 +242,16 @@ class TestWorkerLimits:
 
         monkeypatch.setenv("SIMBOT_LLM", "fake")
         monkeypatch.setenv("DJANGO_SETTINGS_MODULE", "config.settings.prod")
-        from config.settings import base, prod
+        # Production also insists on a real key and host; give it those so only the model trips.
+        monkeypatch.setenv("DJANGO_SECRET_KEY", "x" * 50)
+        monkeypatch.setenv("ALLOWED_HOSTS", "training.example.com")
+        from config.settings import base
 
         try:
             importlib.reload(base)  # prod copies the setting from base
             with pytest.raises(RuntimeError, match="not allowed in production"):
-                importlib.reload(prod)
+                importlib.import_module("config.settings.prod")
         finally:
             monkeypatch.undo()
+            sys.modules.pop("config.settings.prod", None)
             importlib.reload(base)
-            importlib.reload(prod)

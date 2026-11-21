@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed test lint shell backup restore-drill dev dev-db dev-migrate dev-seed dev-shell dev-worker dev-worker-media dev-worker-sim dev-beat dev-workers load-test frontend
+.PHONY: prod-up prod-down prod-migrate prod-logs prod-shell up down migrate seed test lint shell backup restore-drill dev dev-db dev-migrate dev-seed dev-shell dev-worker dev-worker-media dev-worker-sim dev-beat dev-workers load-test frontend
 
 # --- Docker Compose workflow (matches the real deployment path in
 # docs/architecture.md). Requires Docker — not installed on this machine
@@ -95,7 +95,27 @@ lint:
 
 # Stubs — real implementations land in M6 (Hardening + pilot).
 backup:
-	@echo "backup: not implemented until M6 — see docs/architecture.md §13"
+	./deploy/backup/backup.sh
 
 restore-drill:
 	@echo "restore-drill: not implemented until M6 — see docs/architecture.md §13"
+
+# --- Production (on the server; see DEPLOY.md) ---------------------------------------------
+PROD = docker compose -f docker-compose.prod.yml --env-file .env.prod
+
+prod-up:
+	$(PROD) up -d --build
+
+prod-down:
+	$(PROD) down
+
+# Back up first: `make backup`. Then apply database changes and set up the built-in roles.
+prod-migrate:
+	$(PROD) run --rm web python manage.py migrate
+	$(PROD) run --rm web python manage.py seed_roles
+
+prod-logs:
+	$(PROD) logs -f --tail=200
+
+prod-shell:
+	$(PROD) run --rm web python manage.py shell
