@@ -59,50 +59,118 @@ export function LearnerDetailPage() {
     <ul className={styles.activities}>
       {list.map((a) => (
         <li key={a.id} id={`activity-${a.id}`} className={styles.activity}>
-          <div className={styles.activityMain}>
-            <p className={styles.activityTitle}>{a.title}</p>
-            <p className={styles.sub}>
-              {showLesson && `${a.lesson} · `}
-              {typeLabel(a.type)} · {a.required ? 'Required' : 'Optional'}
-            </p>
-          </div>
-          <span className={`${styles.status} ${styles[`s_${a.state}`]}`}>
-            {a.awaiting_review ? 'Awaiting review' : statusLabel(a.state, a.type)}
-          </span>
-          {a.scored && (
-            <span className={styles.score}>
-              {a.best_score === null ? '—' : `Best ${percent(a.best_score)}`}
-              <span className={styles.sub}>
-                {a.attempts.length}
-                {a.max_attempts > 0 ? ` of ${a.max_attempts}` : ''} attempts
-              </span>
+          <div className={styles.activityHead}>
+            <div className={styles.activityMain}>
+              <p className={styles.activityTitle}>{a.title}</p>
+              <p className={styles.sub}>
+                {showLesson && `${a.lesson} · `}
+                {typeLabel(a.type)} · {a.required ? 'Required' : 'Optional'}
+              </p>
+            </div>
+            <span className={`${styles.status} ${styles[`s_${a.state}`]}`}>
+              {a.awaiting_review ? 'Awaiting review' : statusLabel(a.state, a.type)}
             </span>
-          )}
-          {a.watch && (
-            <span className={styles.score}>
-              {a.watch.watched_fraction === null
-                ? a.state === 'completed'
-                  ? 'Confirmed by the learner'
-                  : 'Not confirmed yet'
-                : `Watched ${percent(a.watch.watched_fraction)}`}
-              {a.watch.needs_review && (
-                <span className={styles.sub}>
-                  Worth a look: {a.watch.reasons.join('; ').toLowerCase()}
+          </div>
+          {(a.scored || a.watch || a.sim || a.rated) && (
+            <div className={styles.facts}>
+              {a.scored && (
+                <span className={styles.score}>
+                  {a.best_score === null ? '—' : `Best ${percent(a.best_score)}`}
+                  <span className={styles.sub}>
+                    {a.attempts.length}
+                    {a.max_attempts > 0 ? ` of ${a.max_attempts}` : ''} attempts
+                  </span>
                 </span>
               )}
-            </span>
+              {a.watch && (
+                <span className={styles.score}>
+                  {a.watch.watched_fraction === null
+                    ? a.state === 'completed'
+                      ? 'Confirmed by the learner'
+                      : 'Not confirmed yet'
+                    : `Watched ${percent(a.watch.watched_fraction)}`}
+                  {a.watch.needs_review && (
+                    <span className={styles.sub}>
+                      Worth a look: {a.watch.reasons.join('; ').toLowerCase()}
+                    </span>
+                  )}
+                </span>
+              )}
+              {a.sim && (
+                <span className={styles.score}>
+                  {a.sim.finished === 0
+                    ? 'No tickets finished yet'
+                    : `${a.sim.finished} of ${a.sim.required} tickets · average ${Number((a.sim.average_raw ?? 0).toFixed(2))} / 5`}
+                  <span className={styles.sub}>
+                    {a.sim.skips > 0
+                      ? `${a.sim.skips} ${a.sim.skips === 1 ? 'question' : 'questions'} skipped`
+                      : 'none skipped'}
+                  </span>
+                </span>
+              )}
+              {a.rated && (
+                <span className={styles.score}>
+                  {RATED_STATUS[a.rated.status]}
+                  <span className={styles.sub}>
+                    {a.rated.revisions} {a.rated.revisions === 1 ? 'revision' : 'revisions'}
+                    {a.rated.last_score != null
+                      ? ` · last rated ${Number(a.rated.last_score.toFixed(2))} / 5`
+                      : ''}
+                  </span>
+                  {a.rated.due_at &&
+                    !['passed', 'waived', 'not_passed'].includes(a.rated.status) && (
+                      <span className={styles.sub}>
+                        {a.rated.overdue ? 'Overdue — was due ' : 'Due '}
+                        {formatDateTime(a.rated.due_at)}
+                      </span>
+                    )}
+                  {a.rated.needs_attention && (
+                    <span className={styles.sub}>
+                      Needs attention: {a.rated.unsuccessful} reviews have asked for changes
+                    </span>
+                  )}
+                  {a.rated.closed_reason && a.rated.close_note && (
+                    <span className={styles.sub}>Note: {a.rated.close_note}</span>
+                  )}
+                </span>
+              )}
+            </div>
           )}
-          {a.sim && (
-            <span className={styles.score}>
-              {a.sim.finished === 0
-                ? 'No tickets finished yet'
-                : `${a.sim.finished} of ${a.sim.required} tickets · average ${Number((a.sim.average_raw ?? 0).toFixed(2))} / 5`}
-              <span className={styles.sub}>
-                {a.sim.skips > 0
-                  ? `${a.sim.skips} ${a.sim.skips === 1 ? 'question' : 'questions'} skipped`
-                  : 'none skipped'}
-              </span>
-            </span>
+          {a.rated?.waiting && (
+            <p className={styles.note}>
+              Waiting for a review — {untilText(a.rated.waiting.review_due_at).text}
+              {a.rated.waiting.escalated
+                ? ' · open to any mentor'
+                : a.rated.waiting.assigned_mentor
+                  ? ` · with ${a.rated.waiting.assigned_mentor}`
+                  : ' · in the shared pool'}
+              {(canReview || canManageReviews) && (
+                <>
+                  {' · '}
+                  <Link to={`/admin/ratings/${a.rated.waiting.id}`}>Open the review</Link>
+                </>
+              )}
+            </p>
+          )}
+          {((a.rated && canManageReviews) || (a.scored && canReset && a.attempts.length > 0)) && (
+            <div className={styles.activityActions}>
+              {a.rated && canManageReviews && (
+                <CaseActions
+                  caseId={a.rated.case_id}
+                  status={a.rated.status}
+                  onDone={() => reload()}
+                />
+              )}
+              {a.scored && canReset && a.attempts.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setResetting(a)}
+                >
+                  Reset attempts
+                </button>
+              )}
+            </div>
           )}
           {a.sim && a.sim.sessions.length > 0 && (
             <ol className={styles.attempts} aria-label={`Practice tickets for ${a.title}`}>
@@ -135,55 +203,6 @@ export function LearnerDetailPage() {
                 </li>
               ))}
             </ol>
-          )}
-          {a.rated && (
-            <span className={styles.score}>
-              {RATED_STATUS[a.rated.status]}
-              <span className={styles.sub}>
-                {a.rated.revisions} {a.rated.revisions === 1 ? 'revision' : 'revisions'}
-                {a.rated.last_score != null
-                  ? ` · last rated ${Number(a.rated.last_score.toFixed(2))} / 5`
-                  : ''}
-              </span>
-              {a.rated.due_at && !['passed', 'waived', 'not_passed'].includes(a.rated.status) && (
-                <span className={styles.sub}>
-                  {a.rated.overdue ? 'Overdue — was due ' : 'Due '}
-                  {formatDateTime(a.rated.due_at)}
-                </span>
-              )}
-              {a.rated.needs_attention && (
-                <span className={styles.sub}>
-                  Needs attention: {a.rated.unsuccessful} reviews have asked for changes
-                </span>
-              )}
-              {a.rated.closed_reason && a.rated.close_note && (
-                <span className={styles.sub}>Note: {a.rated.close_note}</span>
-              )}
-            </span>
-          )}
-          {a.rated?.waiting && (
-            <span className={styles.sub}>
-              Waiting for a review — {untilText(a.rated.waiting.review_due_at).text}
-              {a.rated.waiting.escalated
-                ? ' · open to any mentor'
-                : a.rated.waiting.assigned_mentor
-                  ? ` · with ${a.rated.waiting.assigned_mentor}`
-                  : ' · in the shared pool'}
-              {(canReview || canManageReviews) && (
-                <>
-                  {' · '}
-                  <Link to={`/admin/ratings/${a.rated.waiting.id}`}>Open the review</Link>
-                </>
-              )}
-            </span>
-          )}
-          {a.rated && canManageReviews && (
-            <CaseActions caseId={a.rated.case_id} status={a.rated.status} onDone={() => reload()} />
-          )}
-          {a.scored && canReset && a.attempts.length > 0 && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setResetting(a)}>
-              Reset attempts
-            </button>
           )}
           {a.attempts.length > 0 && (
             <ol className={styles.attempts} aria-label={`Attempts at ${a.title}`}>
@@ -299,7 +318,9 @@ export function LearnerDetailPage() {
             canManage={canEnroll}
             onChanged={reload}
           >
-            <h3 className={styles.blockTitle}>Activities, attempts and ratings</h3>
+            <h3 className={`${styles.blockTitle} ${styles.sectionTitle}`}>
+              Activities, attempts and ratings
+            </h3>
             {detail && detail.activities.length > 0 ? (
               grouped(selected, detail.activities)
             ) : (
@@ -409,6 +430,9 @@ function CourseView({
         canManage={canManage}
         onChanged={onChanged}
       />
+      {course.quizzes.length + course.practice.length + course.rated.length > 0 && (
+        <h3 className={`${styles.blockTitle} ${styles.sectionTitle}`}>Scores</h3>
+      )}
       <ProgressScores
         course={course}
         hrefOf={(item) => `#activity-${item.activity_id}`}

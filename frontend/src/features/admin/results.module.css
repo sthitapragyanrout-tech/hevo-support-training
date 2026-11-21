@@ -59,12 +59,43 @@
   border-radius: 10px;
 }
 
+/* One activity: title and status on top, then what happened, any note, the staff actions in a
+   row, and last the attempt-by-attempt list. Stacked, so nothing is squeezed into a column. */
 .activity {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 150px auto;
-  align-items: center;
-  gap: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
+}
+
+.activityHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.activityMain {
+  min-width: 0;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-6);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.activityActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
 }
 
 .activity + .activity {
@@ -77,6 +108,8 @@
 }
 
 .status {
+  flex: none;
+  white-space: nowrap;
   font-size: var(--fs-13);
   font-weight: 600;
   color: var(--text-muted);
@@ -122,10 +155,6 @@
 }
 
 @media (max-width: 899px) {
-  .activity {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .attempts li {
     grid-template-columns: 90px 50px 1fr;
   }
@@ -160,6 +189,19 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/* The page's two big sections (Scores; Activities, attempts and ratings) stand out from the
+   smaller table headings inside them: a lime marker behind the words. */
+.sectionTitle {
+  align-self: flex-start;
+  width: fit-content;
+  margin-top: var(--sp-6);
+  padding: 2px 6px;
+  font-size: var(--fs-14);
+  color: var(--signal-ink);
+  background: var(--signal);
+  border-radius: 2px;
 }
 
 .certificate {
