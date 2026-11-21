@@ -139,8 +139,7 @@ export function ProgressOutline({
                             <>Not started · {pluralize(m.lessons_total, 'lesson')}</>
                           ) : (
                             <>
-                              In progress · {m.lessons_done} of{' '}
-                              {pluralize(m.lessons_total, 'lesson')} done
+                              {m.lessons_done} of {pluralize(m.lessons_total, 'lesson')} done
                               {m.lessons_awaiting_review > 0 &&
                                 ` · ${m.lessons_awaiting_review} waiting for marks`}
                             </>

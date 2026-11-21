@@ -7,6 +7,7 @@ import { catalogApi, progressApi } from '../../lib/api'
 import { parseCourseIntro } from './courseIntro'
 import styles from './CourseListPage.module.css'
 import { flattenLessons, formatMinutes, getModules, pluralize, totalMinutes } from './treeUtils'
+import { NotEnrolled } from './NotEnrolled'
 import { useAsync } from './useAsync'
 
 /** The list endpoint carries no counts, so each course's tree is fetched to
@@ -66,11 +67,7 @@ export function CourseListPage() {
     )
   }
   if (data.length === 0) {
-    return (
-      <PageState kind="empty" title="You aren’t enrolled in a course yet">
-        Ask your trainer to enroll you. Your courses will appear here.
-      </PageState>
-    )
+    return <NotEnrolled what="courses" />
   }
 
   const featured = pickFeatured(data)

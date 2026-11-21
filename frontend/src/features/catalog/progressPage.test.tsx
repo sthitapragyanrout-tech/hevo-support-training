@@ -293,7 +293,7 @@ describe('My progress', () => {
     const items = Array.from(list.children) as HTMLElement[]
     expect(items.map((li) => li.querySelector('summary')!.textContent)).toEqual([
       expect.stringContaining('Getting startedComplete · 1 lesson'),
-      expect.stringContaining('PipelinesIn progress · 0 of 2 lessons done · 1 waiting for marks'),
+      expect.stringContaining('Pipelines0 of 2 lessons done · 1 waiting for marks'),
       expect.stringContaining('EscalationsNot started · 1 lesson'),
     ])
     // Each state looks different, not only reads different.
@@ -396,6 +396,8 @@ describe('My progress', () => {
     mockServer([])
     renderAt('/progress')
     expect(await screen.findByText('You aren’t enrolled in a course yet')).toBeInTheDocument()
+    expect(screen.getByText(/Your trainer enrolls you/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Studio|Admin/ })).not.toBeInTheDocument()
   })
 
   it('offers a retry when it cannot load', async () => {

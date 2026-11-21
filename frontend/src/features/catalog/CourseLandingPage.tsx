@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon'
 import { ProgressBar } from '../../components/ProgressBar'
 import type { LessonStatus } from '../../components/StatusIcon'
 import { activityMix } from './activityTypes'
+import { CourseCertificate } from './CourseCertificate'
 import { useCourse } from './courseContext'
 import { parseCourseIntro } from './courseIntro'
 import styles from './CourseLandingPage.module.css'
@@ -22,7 +23,7 @@ import {
 import { hasStarted } from './useProgress'
 
 export function CourseLandingPage() {
-  const { basePath, root, modules, lessons, progress } = useCourse()
+  const { courseId, preview, basePath, root, modules, lessons, progress } = useCourse()
   const [query, setQuery] = useState('')
 
   useEffect(() => {
@@ -120,6 +121,8 @@ export function CourseLandingPage() {
             ) : (
               <p className={styles.more}>No lessons have been added yet.</p>
             )}
+
+            {!preview && <CourseCertificate courseId={courseId} />}
           </div>
 
           <section className={styles.glance} aria-label="At a glance">

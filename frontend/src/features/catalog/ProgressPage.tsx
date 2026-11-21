@@ -8,6 +8,7 @@ import { OutlineLayout, ProgressOutline } from './ProgressOutline'
 import { ProgressScores } from './ProgressScores'
 import styles from './ProgressPage.module.css'
 import { pluralize } from './treeUtils'
+import { NotEnrolled } from './NotEnrolled'
 import { useAsync } from './useAsync'
 
 /** Your own results across the courses you are enrolled on: just the facts the platform records
@@ -25,11 +26,7 @@ export function ProgressPage() {
     )
   }
   if (data.courses.length === 0) {
-    return (
-      <PageState kind="empty" title="You aren’t enrolled in a course yet">
-        Ask your trainer to enroll you. Your progress will appear here.
-      </PageState>
-    )
+    return <NotEnrolled what="progress" />
   }
 
   // The course picked in the side panel (kept in the URL); else the one under way, else the

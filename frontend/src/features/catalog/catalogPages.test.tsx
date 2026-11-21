@@ -20,6 +20,24 @@ function renderAt(url: string) {
   )
 }
 
+const CERT = { id: 9, code: 'ABC-123', issued_at: '2026-11-21T10:00:00Z', score: 0.9 }
+
+function certCourse({ certificate }: { certificate: typeof CERT | null }) {
+  return {
+    course_id: 1,
+    lessons_total: 2,
+    lessons_done: 1,
+    certification: {
+      enabled: true,
+      threshold: 70,
+      score: 0.8,
+      missing: [],
+      eligible: false,
+      certificate,
+    },
+  }
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
   document.title = ''
@@ -58,7 +76,9 @@ describe('Course landing', () => {
     mockApi()
     renderAt('/courses/1')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'CX Onboarding' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'CX Onboarding' }),
+    ).toBeInTheDocument()
     expect(screen.getByText('Not started · 2 lessons · 2 modules · ~45 min')).toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.queryByText(/\d+%/)).not.toBeInTheDocument()
@@ -94,6 +114,33 @@ describe('Course landing', () => {
     expect(screen.getByText(/No lessons match/)).toBeInTheDocument()
   })
 
+  it('shows the certificate card once it is earned, with a link to it', async () => {
+    mockApi({ summary: { courses: [certCourse({ certificate: CERT })] } })
+    renderAt('/courses/1')
+    expect(await screen.findByText('Certificate earned')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View certificate' })).toHaveAttribute(
+      'href',
+      '/certificates/ABC-123',
+    )
+  })
+
+  it('says what earning the certificate takes before it is earned', async () => {
+    mockApi({ summary: { courses: [certCourse({ certificate: null })] } })
+    renderAt('/courses/1')
+    expect(await screen.findByText('This course has a certificate')).toBeInTheDocument()
+    expect(
+      screen.getByText(/Finish every lesson with a course score of 70% or more · yours so far 80%/),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'View certificate' })).not.toBeInTheDocument()
+  })
+
+  it('shows no certificate card when the course has none', async () => {
+    mockApi()
+    renderAt('/courses/1')
+    await screen.findByRole('heading', { level: 1, name: 'CX Onboarding' })
+    expect(screen.queryByText(/certificate/i)).not.toBeInTheDocument()
+  })
+
   it('shows a not-found state for an unknown course', async () => {
     mockApi({ courseStatus: 404 })
     renderAt('/courses/1')
@@ -122,7 +169,9 @@ describe('Lesson page', () => {
     const sources = screen.getByRole('heading', { level: 2, name: 'Sources' }).closest('section')!
     expect(within(sources).getByText('Read the docs')).toBeInTheDocument()
     expect(within(sources).getByText('Sources quiz')).toBeInTheDocument()
-    const ingestion = screen.getByRole('heading', { level: 2, name: 'Ingestion' }).closest('section')!
+    const ingestion = screen
+      .getByRole('heading', { level: 2, name: 'Ingestion' })
+      .closest('section')!
     expect(within(ingestion).queryByText('Read the docs')).not.toBeInTheDocument()
   })
 

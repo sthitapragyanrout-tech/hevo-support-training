@@ -45,6 +45,8 @@ interface Options {
   canReset?: boolean
   /** `sequential`: lesson 7 (Failures) is locked until lesson 3 (Pipelines) is complete. */
   learningOrder?: 'free' | 'sequential'
+  /** What My progress returns; the course overview reads its certificate from here. */
+  summary?: { courses: unknown[] }
 }
 
 const USER = {
@@ -269,6 +271,8 @@ export function mockLearnerApi(options: Options = {}) {
         return reply(200, { completed: true })
       }
       if (path === '/api/v1/notifications/unread-count/') return reply(200, { unread_count: 0 })
+      if (path === '/api/v1/progress/summary/')
+        return reply(200, options.summary ?? { courses: [] })
       return reply(404, { detail: 'Not found.' })
     }),
   )

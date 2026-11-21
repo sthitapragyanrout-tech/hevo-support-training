@@ -197,6 +197,16 @@ describe('capabilities', () => {
     expect(await screen.findByRole('link', { name: 'Studio' })).toHaveAttribute('href', '/studio')
   })
 
+  it('points staff on no course to their own work instead of a trainer', async () => {
+    mockApi(AUTHOR, { 'GET /api/v1/catalog/courses/': () => ({ body: [] }) })
+    renderAt('/')
+    expect(await screen.findByRole('link', { name: 'Open Studio' })).toHaveAttribute(
+      'href',
+      '/studio',
+    )
+    expect(screen.queryByText(/Your trainer enrolls you/)).not.toBeInTheDocument()
+  })
+
   it('blocks the Studio URL for someone without the capability', async () => {
     mockApi([], {})
     renderAt('/studio')

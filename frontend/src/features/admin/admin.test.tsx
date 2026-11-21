@@ -401,7 +401,7 @@ describe('Learner detail', () => {
     expect(within(course).getByText('2 of 3 lessons')).toBeInTheDocument()
     expect(screen.getByText(/Group L1/)).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Modules in CX Onboarding' })).toHaveTextContent(
-      'In progress · 2 of 3 lessons done',
+      '2 of 3 lessons done',
     )
     expect(screen.getByText('Read')).toBeInTheDocument() // the reading, completed
     expect(screen.getAllByText('Not passed').length).toBeGreaterThan(0)
